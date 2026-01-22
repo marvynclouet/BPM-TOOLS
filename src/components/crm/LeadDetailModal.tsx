@@ -373,7 +373,7 @@ export default function LeadDetailModal({ lead, currentUser, onClose }: LeadDeta
 
           {/* Niveau d'intérêt */}
           <div>
-            <label className="text-sm text-white/60 mb-2 block">Niveau d'intérêt</label>
+            <label className="text-sm text-white/60 mb-2 block">Niveau d&apos;intérêt</label>
             <select
               value={editValues.interest_level || ''}
               onChange={(e) => handleFieldChange('interest_level', e.target.value || null)}
@@ -498,7 +498,7 @@ export default function LeadDetailModal({ lead, currentUser, onClose }: LeadDeta
           {/* Dates (lecture seule) */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-white/60 mb-2 block">Date d'ajout</label>
+              <label className="text-sm text-white/60 mb-2 block">Date d&apos;ajout</label>
               <div className="text-white text-sm bg-white/5 rounded-lg p-3">
                 {format(new Date(lead.created_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}
               </div>

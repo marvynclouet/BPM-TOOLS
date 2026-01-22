@@ -86,7 +86,7 @@ export default function TestLoginPage() {
             onClick={checkAuth}
             className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600"
           >
-            Vérifier l'auth
+            Vérifier l&apos;auth
           </button>
           
           <button

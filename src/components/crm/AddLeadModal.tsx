@@ -317,7 +317,7 @@ export default function AddLeadModal({ onClose, onSave, currentUserId }: AddLead
 
           <div>
             <label className="block text-sm font-medium mb-2 text-white/70">
-              Niveau d'intérêt
+              Niveau d&apos;intérêt
             </label>
             <select
               value={formData.interest_level || ''}

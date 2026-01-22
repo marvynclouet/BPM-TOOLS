@@ -22,6 +22,8 @@ interface AccountingEntry {
     formation: string
     price_fixed: number | null
     price_deposit: number | null
+    documents_sent_at: string | null
+    email: string | null
   } | null
   payments: {
     paid_at: string | null

@@ -134,13 +134,13 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
                     </div>
                   </div>
                   <p className="text-white/60 text-xs text-center">
-                    Le message a été envoyé à l'élève avec le lien d'invitation.
+                    Le message a été envoyé à l&apos;élève avec le lien d&apos;invitation.
                   </p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <p className="text-white/70 text-sm">
-                    WhatsApp va s'ouvrir avec les instructions. Suivez les étapes pour créer le groupe manuellement.
+                    WhatsApp va s&apos;ouvrir avec les instructions. Suivez les étapes pour créer le groupe manuellement.
                   </p>
                   <div className="bg-white/5 rounded-xl p-4">
                     <p className="text-xs text-white/50 mb-2">Lien WhatsApp :</p>

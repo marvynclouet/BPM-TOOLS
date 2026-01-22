@@ -21,6 +21,8 @@ interface AccountingEntry {
     formation: string
     price_fixed: number | null
     price_deposit: number | null
+    documents_sent_at: string | null
+    email: string | null
   } | null
   payments: {
     paid_at: string | null
@@ -336,17 +338,26 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
             className="px-3 py-1.5 bg-purple-500/20 text-purple-300 rounded-lg text-xs font-medium hover:bg-purple-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
             title="Générer la facture en PDF"
           >
-            {loadingInvoice ? '...' : '📄 Générer'}
+            {loadingInvoice ? '...' : '📄 Générer facture'}
           </button>
           {lead && (
-            <button
-              onClick={handleSendInvoice}
-              disabled={loadingInvoice}
-              className="px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-lg text-xs font-medium hover:bg-blue-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Envoyer la facture par email"
-            >
-              {loadingInvoice ? '...' : '📧 Envoyer'}
-            </button>
+            lead.documents_sent_at ? (
+              <div
+                className="px-3 py-1.5 bg-green-500/20 text-green-300 rounded-lg text-xs font-medium"
+                title={`Facture envoyée le ${format(new Date(lead.documents_sent_at), 'dd MMM yyyy à HH:mm', { locale: fr })}`}
+              >
+                ✅ Facture envoyée
+              </div>
+            ) : (
+              <button
+                onClick={handleSendInvoice}
+                disabled={loadingInvoice || !lead.email}
+                className="px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-lg text-xs font-medium hover:bg-blue-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                title={!lead.email ? "Email manquant pour envoyer la facture" : "Envoyer la facture par email"}
+              >
+                {loadingInvoice ? '...' : '📧 Envoyer facture'}
+              </button>
+            )
           )}
         </div>
       </td>

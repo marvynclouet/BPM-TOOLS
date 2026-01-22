@@ -13,20 +13,52 @@ const COLORS = {
 }
 
 // Fonction pour charger le logo en base64 (convertit WEBP en PNG si nécessaire)
+// Compatible Vercel : essaie d'abord avec fs (local), puis fetch (production)
 async function getLogoBase64(): Promise<string | null> {
   try {
-    // Essayer d'abord le nouveau logo webp
-    const logoWebpPath = path.join(process.cwd(), 'public', 'logo-bpm-formations.webp')
-    if (fs.existsSync(logoWebpPath)) {
-      // Convertir WEBP en PNG avec sharp
-      const pngBuffer = await sharp(logoWebpPath).png().toBuffer()
-      return `data:image/png;base64,${pngBuffer.toString('base64')}`
-    }
-    // Sinon utiliser l'ancien logo PNG
-    const logoPngPath = path.join(process.cwd(), 'public', 'logo-bpm-tools.png')
-    if (fs.existsSync(logoPngPath)) {
-      const logoBuffer = fs.readFileSync(logoPngPath)
-      return `data:image/png;base64,${logoBuffer.toString('base64')}`
+    // Essayer d'abord avec fs (pour développement local et build)
+    try {
+      // Essayer d'abord le nouveau logo webp
+      const logoWebpPath = path.join(process.cwd(), 'public', 'logo-bpm-formations.webp')
+      if (fs.existsSync(logoWebpPath)) {
+        // Convertir WEBP en PNG avec sharp
+        const pngBuffer = await sharp(logoWebpPath).png().toBuffer()
+        return `data:image/png;base64,${pngBuffer.toString('base64')}`
+      }
+      // Sinon utiliser l'ancien logo PNG
+      const logoPngPath = path.join(process.cwd(), 'public', 'logo-bpm-tools.png')
+      if (fs.existsSync(logoPngPath)) {
+        const logoBuffer = fs.readFileSync(logoPngPath)
+        return `data:image/png;base64,${logoBuffer.toString('base64')}`
+      }
+    } catch (fsError) {
+      // Si fs échoue (Vercel serverless), essayer avec fetch
+      try {
+        // Sur Vercel, utiliser l'URL publique
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL 
+          || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+          || 'http://localhost:3000'
+        
+        // Essayer d'abord le nouveau logo webp
+        const webpUrl = `${baseUrl}/logo-bpm-formations.webp`
+        const webpResponse = await fetch(webpUrl)
+        if (webpResponse.ok) {
+          const webpBuffer = Buffer.from(await webpResponse.arrayBuffer())
+          // Convertir WEBP en PNG avec sharp
+          const pngBuffer = await sharp(webpBuffer).png().toBuffer()
+          return `data:image/png;base64,${pngBuffer.toString('base64')}`
+        }
+        
+        // Sinon utiliser l'ancien logo PNG
+        const pngUrl = `${baseUrl}/logo-bpm-tools.png`
+        const pngResponse = await fetch(pngUrl)
+        if (pngResponse.ok) {
+          const pngBuffer = Buffer.from(await pngResponse.arrayBuffer())
+          return `data:image/png;base64,${pngBuffer.toString('base64')}`
+        }
+      } catch (fetchError) {
+        console.error('Erreur chargement logo (fetch):', fetchError)
+      }
     }
   } catch (error) {
     console.error('Erreur chargement logo:', error)

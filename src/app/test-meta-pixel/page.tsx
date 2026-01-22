@@ -154,7 +154,7 @@ export default function TestMetaPixelPage() {
                   <p className="text-white/60 text-sm">
                     {isConnected 
                       ? 'Votre pixel est correctement initialisé et prêt à tracker les événements'
-                      : 'Vérifiez votre configuration et redémarrez l\'application'}
+                      : 'Vérifiez votre configuration et redémarrez l&apos;application'}
                   </p>
                 </div>
               </div>
@@ -172,7 +172,7 @@ export default function TestMetaPixelPage() {
                 📤 Envoyer un événement de test
               </button>
               <p className="text-xs text-white/40">
-                Envoie un événement "ManualTest" pour vérifier que les événements sont bien trackés dans Meta Events Manager
+                Envoie un événement &quot;ManualTest&quot; pour vérifier que les événements sont bien trackés dans Meta Events Manager
               </p>
             </div>
           </div>
@@ -182,14 +182,14 @@ export default function TestMetaPixelPage() {
             <h2 className="text-2xl font-semibold mb-4">Instructions</h2>
             <ol className="space-y-2 text-white/70 list-decimal list-inside">
               <li>Ajoutez votre Pixel ID dans <code className="bg-white/10 px-2 py-1 rounded">.env.local</code> : <code className="bg-white/10 px-2 py-1 rounded">NEXT_PUBLIC_META_PIXEL_ID=votre_pixel_id</code></li>
-              <li>Redémarrez l'application : <code className="bg-white/10 px-2 py-1 rounded">npm run dev</code></li>
-              <li>Visitez cette page et cliquez sur "Vérifier la connexion"</li>
+              <li>Redémarrez l&apos;application : <code className="bg-white/10 px-2 py-1 rounded">npm run dev</code></li>
+              <li>Visitez cette page et cliquez sur &quot;Vérifier la connexion&quot;</li>
               <li>Vérifiez dans Meta Events Manager que les événements apparaissent</li>
-              <li>Testez le formulaire d'inscription pour voir les conversions</li>
+              <li>Testez le formulaire d&apos;inscription pour voir les conversions</li>
             </ol>
             <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
               <p className="text-sm text-blue-300">
-                <strong>💡 Astuce:</strong> Utilisez l'extension Chrome "Facebook Pixel Helper" pour vérifier le pixel en temps réel sur n'importe quelle page.
+                <strong>💡 Astuce:</strong> Utilisez l&apos;extension Chrome &quot;Facebook Pixel Helper&quot; pour vérifier le pixel en temps réel sur n&apos;importe quelle page.
               </p>
             </div>
           </div>

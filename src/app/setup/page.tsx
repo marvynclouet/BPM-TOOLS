@@ -8,12 +8,12 @@ export default function SetupPage() {
         <div>
           <h1 className="text-4xl font-bold mb-4">BPM Tools - Configuration</h1>
           <p className="text-white/70">
-            Configurez les variables d'environnement pour démarrer l'application
+            Configurez les variables d&apos;environnement pour démarrer l&apos;application
           </p>
         </div>
 
         <div className="bg-white/5 border border-white/10 rounded-lg p-6 space-y-6">
-          <h2 className="text-2xl font-semibold">Variables d'environnement</h2>
+          <h2 className="text-2xl font-semibold">Variables d&apos;environnement</h2>
 
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
@@ -96,7 +96,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000`}
                     supabase.com
                   </a>
                 </li>
-                <li>Récupérer l'URL et la clé API dans Settings → API</li>
+                <li>Récupérer l&apos;URL et la clé API dans Settings → API</li>
                 <li>Exécuter la migration SQL depuis <code className="bg-white/10 px-1 rounded">supabase/migrations/001_initial_schema.sql</code></li>
                 <li>Créer un bucket Storage nommé <code className="bg-white/10 px-1 rounded">documents</code></li>
               </ol>

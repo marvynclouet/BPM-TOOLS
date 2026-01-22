@@ -74,6 +74,17 @@ export default function LeadRow({ lead, currentUser }: LeadRowProps) {
     autre: 'Autre',
   }
 
+  const sourceLabels: Record<string, string> = {
+    manuel: 'Manuel',
+    direct: 'Direct',
+    instagram: '📷 Instagram',
+    tiktok: '🎵 TikTok',
+    facebook: '📘 Facebook',
+    google: '🔍 Google',
+    youtube: '📺 YouTube',
+    autre: 'Autre',
+  }
+
   const statusColors: Record<string, string> = {
     nouveau: 'bg-blue-500/20 text-blue-300',
     chinois: 'bg-yellow-500/20 text-yellow-300',

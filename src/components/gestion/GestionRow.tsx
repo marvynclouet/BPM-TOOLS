@@ -208,33 +208,37 @@ export default function GestionRow({ lead, showWhatsAppGroup = false, showDocume
                 onClick={() => handleGeneratePDF()}
                 disabled={loading === 'generate-pdf'}
                 className="px-3 py-1.5 bg-purple-500/20 text-purple-300 rounded-lg text-xs font-medium hover:bg-purple-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Générer l'attestation et la facture en PDF"
               >
-                {loading === 'generate-pdf' ? '...' : '📄 Générer PDF'}
+                {loading === 'generate-pdf' ? '...' : '📄 Générer attestation et facture'}
               </button>
-              <button
-                onClick={() => handleGenerateDocuments('email')}
-                disabled={loading === 'documents-email' || !lead.email}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                  lead.documents_sent_at
-                    ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30'
-                    : 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
-                }`}
-                title={lead.documents_sent_at ? `Envoyé le ${format(new Date(lead.documents_sent_at), 'dd MMM yyyy à HH:mm', { locale: fr })}` : lead.email ? 'Envoyer attestation et facture par email' : 'Email non renseigné'}
-              >
-                {loading === 'documents-email' ? '...' : lead.documents_sent_at ? '✅ Envoyé' : '📧 Envoyer par email'}
-              </button>
-              <button
-                onClick={() => handleGenerateDocuments('whatsapp')}
-                disabled={loading === 'documents-whatsapp'}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                  lead.documents_sent_at
-                    ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30'
-                    : 'bg-green-500/20 text-green-300 hover:bg-green-500/30'
-                }`}
-                title={lead.documents_sent_at ? `Envoyé le ${format(new Date(lead.documents_sent_at), 'dd MMM yyyy à HH:mm', { locale: fr })}` : 'Envoyer attestation et facture par WhatsApp'}
-              >
-                {loading === 'documents-whatsapp' ? '...' : lead.documents_sent_at ? '✅ Envoyé' : '💬 WhatsApp'}
-              </button>
+              {lead.documents_sent_at ? (
+                <div
+                  className="px-3 py-1.5 bg-green-500/20 text-green-300 rounded-lg text-xs font-medium"
+                  title={`Facture et attestation envoyées le ${format(new Date(lead.documents_sent_at), 'dd MMM yyyy à HH:mm', { locale: fr })}`}
+                >
+                  ✅ Facture et attestation envoyées
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => handleGenerateDocuments('email')}
+                    disabled={loading === 'documents-email' || !lead.email}
+                    className="px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-lg text-xs font-medium hover:bg-blue-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={lead.email ? 'Envoyer la facture et l\'attestation par email' : 'Email non renseigné - Ajoutez l\'email dans le CRM'}
+                  >
+                    {loading === 'documents-email' ? '...' : '📧 Envoyer facture et attestation'}
+                  </button>
+                  <button
+                    onClick={() => handleGenerateDocuments('whatsapp')}
+                    disabled={loading === 'documents-whatsapp'}
+                    className="px-3 py-1.5 bg-green-500/20 text-green-300 rounded-lg text-xs font-medium hover:bg-green-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Envoyer la facture et l'attestation par WhatsApp"
+                  >
+                    {loading === 'documents-whatsapp' ? '...' : '💬 Envoyer par WhatsApp'}
+                  </button>
+                </>
+              )}
             </div>
           )}
 

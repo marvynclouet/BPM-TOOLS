@@ -196,7 +196,7 @@ export default function CRMTable({ leads, closers, currentUser }: CRMTableProps)
       ) : (
         <div className="apple-card rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse table-fixed" style={{ minWidth: '1400px' }}>
+            <table className="w-full border-collapse table-fixed" style={{ minWidth: '1500px' }}>
             <thead>
               <tr className="border-b border-white/10">
                 <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '140px' }}>
@@ -210,6 +210,9 @@ export default function CRMTable({ leads, closers, currentUser }: CRMTableProps)
                 </th>
                 <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '90px' }}>
                   Formation
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '100px' }}>
+                  Source
                 </th>
                 <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '80px' }}>
                   Format

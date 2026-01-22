@@ -36,7 +36,7 @@ export default async function ComptabilitePage() {
 
       const { data: leadsData } = await adminClient
         .from('leads')
-        .select('id, first_name, last_name, phone, formation, price_fixed, price_deposit')
+        .select('id, first_name, last_name, phone, formation, price_fixed, price_deposit, documents_sent_at, email')
         .in('id', leadIds)
 
       const { data: paymentsData } = paymentIds.length > 0
@@ -94,7 +94,7 @@ export default async function ComptabilitePage() {
               <ol className="text-white/50 text-sm space-y-2 list-decimal list-inside font-light">
                 <li>Allez dans le CRM</li>
                 <li>Sélectionnez un lead avec un prix fixé et un prix acompte</li>
-                <li>Cliquez sur "Acompte réglé" ou "Paiement complet"</li>
+                <li>Cliquez sur &quot;Acompte réglé&quot; ou &quot;Paiement complet&quot;</li>
                 <li>L'entrée apparaîtra ici automatiquement</li>
               </ol>
             </div>

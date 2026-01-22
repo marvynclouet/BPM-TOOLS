@@ -212,7 +212,7 @@ export default async function DashboardPage() {
       <div className="space-y-4 animate-fade-in pb-6">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-white/50 text-sm">Vue d'ensemble de l'activité</p>
+          <p className="text-white/50 text-sm">Vue d&apos;ensemble de l&apos;activité</p>
         </div>
 
         {/* KPIs avec animations */}

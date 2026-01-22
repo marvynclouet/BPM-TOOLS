@@ -39,7 +39,7 @@ export default async function DebugPage() {
         <h1 className="text-3xl font-bold">Debug - Diagnostic complet</h1>
 
         <div className="bg-white/5 border border-white/10 rounded-lg p-6 space-y-4">
-          <h2 className="text-xl font-semibold">1. Variables d'environnement</h2>
+          <h2 className="text-xl font-semibold">1. Variables d&apos;environnement</h2>
           <div className="space-y-2 text-sm">
             <div>
               <strong>NEXT_PUBLIC_SUPABASE_URL:</strong>{' '}

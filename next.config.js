@@ -4,6 +4,14 @@ const nextConfig = {
   images: {
     domains: [],
   },
+  // Configuration pour Vercel
+  output: 'standalone',
+  // Inclure les fichiers statiques dans le build
+  experimental: {
+    outputFileTracingIncludes: {
+      '/api/**/*': ['./public/**/*'],
+    },
+  },
 }
 
 module.exports = nextConfig

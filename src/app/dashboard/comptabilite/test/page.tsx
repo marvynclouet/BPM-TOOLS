@@ -130,13 +130,13 @@ export default async function TestComptabilitePage() {
                 Prix acompte: <strong className="text-white">{results.abdeLead.price_deposit}€</strong>
               </p>
               <p className="text-white/70 text-sm mb-2">
-                Bouton "Acompte réglé" visible: <strong className="text-white">
+                Bouton &quot;Acompte réglé&quot; visible: <strong className="text-white">
                   {results.abdeLead.status === 'appele' && results.abdeLead.price_deposit ? 'OUI ✅' : 'NON ❌'}
                 </strong>
               </p>
               {results.abdeLead.status !== 'appele' && (
                 <p className="text-yellow-300 text-xs mt-2">
-                  ⚠️ Le statut doit être "appele" pour voir le bouton "Acompte réglé"
+                  ⚠️ Le statut doit être &quot;appele&quot; pour voir le bouton &quot;Acompte réglé&quot;
                 </p>
               )}
             </div>
