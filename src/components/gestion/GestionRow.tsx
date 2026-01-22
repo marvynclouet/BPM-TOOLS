@@ -25,8 +25,16 @@ interface ClosedLead {
   formation_day: string | null
   formation_start_date: string | null
   documents_sent_at: string | null
+  whatsapp_conversation_started_at: string | null
+  whatsapp_relance_1_at: string | null
+  whatsapp_relance_2_at: string | null
+  whatsapp_relance_3_at: string | null
   created_at: string
   planning: PlanningEntry[]
+  closer: {
+    full_name: string | null
+    email: string
+  } | null
 }
 
 interface GestionRowProps {
@@ -37,7 +45,6 @@ interface GestionRowProps {
 
 export default function GestionRow({ lead, showWhatsAppGroup = false, showDocuments = true }: GestionRowProps) {
   const [loading, setLoading] = useState<string | null>(null)
-  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
 
   const formationLabels: Record<string, string> = {
     inge_son: 'Ingé son',
@@ -57,6 +64,7 @@ export default function GestionRow({ lead, showWhatsAppGroup = false, showDocume
   const specificDates = planningEntry?.specific_dates || null
 
   const formatDates = () => {
+    // Priorité 1 : Utiliser le planning si disponible
     if (specificDates && specificDates.length > 0) {
       // Format mensuelle : afficher les 4 dates
       const dates = specificDates.slice(0, 4).map(d => {
@@ -65,9 +73,59 @@ export default function GestionRow({ lead, showWhatsAppGroup = false, showDocume
       })
       return dates.join(', ')
     } else if (startDate && endDate) {
-      // Format semaine : du lundi au vendredi
+      // Format semaine ou BPM Fast : du début à la fin
       return `Du ${format(startDate, 'dd MMM yyyy', { locale: fr })} au ${format(endDate, 'dd MMM yyyy', { locale: fr })}`
     }
+    
+    // Priorité 2 : Utiliser formation_start_date du lead si disponible
+    if (lead.formation_start_date && lead.formation_format) {
+      const startDate = new Date(lead.formation_start_date)
+      
+      if (lead.formation_format === 'mensuelle') {
+        // Pour mensuelle, afficher juste la date de début (ou calculer les 4 dates si on a le jour)
+        if (lead.formation_day) {
+          // Calculer les 4 samedis ou dimanches du mois
+          const year = startDate.getFullYear()
+          const month = startDate.getMonth()
+          const targetDay = lead.formation_day === 'samedi' ? 6 : 0
+          const dates: Date[] = []
+          
+          const daysInMonth = new Date(year, month + 1, 0).getDate()
+          for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, month, day)
+            if (date.getDay() === targetDay) {
+              dates.push(date)
+            }
+          }
+          
+          if (dates.length >= 4) {
+            const formattedDates = dates.slice(0, 4).map(d => format(d, 'dd MMM', { locale: fr }))
+            return formattedDates.join(', ')
+          }
+        }
+        // Sinon, juste la date de début
+        return format(startDate, 'dd MMM yyyy', { locale: fr })
+      } else if (lead.formation_format === 'semaine') {
+        // Pour semaine, calculer la fin (5 jours : lundi à vendredi)
+        // Trouver le lundi de la semaine
+        const dayOfWeek = startDate.getDay() === 0 ? 7 : startDate.getDay()
+        const daysToMonday = dayOfWeek === 1 ? 0 : 1 - dayOfWeek
+        const monday = new Date(startDate)
+        monday.setDate(startDate.getDate() + daysToMonday)
+        
+        // Vendredi = lundi + 4 jours
+        const friday = new Date(monday)
+        friday.setDate(monday.getDate() + 4)
+        
+        return `Du ${format(monday, 'dd MMM yyyy', { locale: fr })} au ${format(friday, 'dd MMM yyyy', { locale: fr })}`
+      } else if (lead.formation_format === 'bpm_fast') {
+        // Pour BPM Fast, 2 jours consécutifs
+        const endDate = new Date(startDate)
+        endDate.setDate(startDate.getDate() + 1)
+        return `Du ${format(startDate, 'dd MMM yyyy', { locale: fr })} au ${format(endDate, 'dd MMM yyyy', { locale: fr })}`
+      }
+    }
+    
     return 'Dates non définies'
   }
 
@@ -142,14 +200,121 @@ export default function GestionRow({ lead, showWhatsAppGroup = false, showDocume
     }
   }
 
-  const handleCreateWhatsAppGroup = () => {
-    setShowWhatsAppModal(true)
+  const handleOpenWhatsApp = async () => {
+    setLoading('whatsapp-open')
+    try {
+      const response = await fetch('/api/gestion/open-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: lead.id }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Erreur lors de l\'ouverture')
+      }
+
+      const data = await response.json()
+      
+      // Ouvrir WhatsApp directement
+      window.open(data.whatsappUrl, '_blank')
+      
+      // Recharger la page pour mettre à jour le statut
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
+    } catch (error: any) {
+      alert(`Erreur: ${error.message}`)
+    } finally {
+      setLoading(null)
+    }
   }
 
-  const handleWhatsAppSuccess = (data: { whatsappUrl: string; method: string; groupId?: string }) => {
-    // Le modal gère déjà l'affichage du succès
-    // On peut ajouter ici une logique supplémentaire si nécessaire
+  const handleRelance = async (relanceNumber: 1 | 2 | 3) => {
+    setLoading(`relance-${relanceNumber}`)
+    try {
+      const response = await fetch('/api/gestion/whatsapp-relance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          leadId: lead.id,
+          relanceNumber 
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Erreur lors de la relance')
+      }
+
+      const data = await response.json()
+      
+      // Ouvrir WhatsApp avec le message de relance
+      window.open(data.whatsappUrl, '_blank')
+      
+      // Recharger la page pour mettre à jour le statut
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
+    } catch (error: any) {
+      alert(`Erreur: ${error.message}`)
+    } finally {
+      setLoading(null)
+    }
   }
+
+  // Calculer les dates pour les relances
+  const getRelanceStatus = () => {
+    if (!lead.whatsapp_conversation_started_at) return null
+    
+    const startDate = new Date(lead.whatsapp_conversation_started_at)
+    const now = new Date()
+    const hoursSinceStart = (now.getTime() - startDate.getTime()) / (1000 * 60 * 60)
+    const daysSinceStart = hoursSinceStart / 24
+
+    // Calculer le temps restant avant la prochaine relance
+    let nextRelanceIn: string | null = null
+    let nextRelanceType: string | null = null
+
+    if (!lead.whatsapp_relance_1_at) {
+      // Relance 1 dans 72h
+      const hoursUntilRelance1 = 72 - hoursSinceStart
+      if (hoursUntilRelance1 > 0) {
+        const days = Math.floor(hoursUntilRelance1 / 24)
+        const hours = Math.floor(hoursUntilRelance1 % 24)
+        if (days > 0) {
+          nextRelanceIn = `${days}j ${hours}h`
+        } else {
+          nextRelanceIn = `${hours}h`
+        }
+        nextRelanceType = 'Relance 1'
+      }
+    } else if (!lead.whatsapp_relance_2_at) {
+      // Relance 2 dans 7 jours
+      const daysUntilRelance2 = 7 - daysSinceStart
+      if (daysUntilRelance2 > 0) {
+        nextRelanceIn = `${Math.floor(daysUntilRelance2)}j`
+        nextRelanceType = 'Relance 2'
+      }
+    } else if (!lead.whatsapp_relance_3_at) {
+      // Dernière relance (disponible après relance 2)
+      nextRelanceIn = 'Disponible'
+      nextRelanceType = 'Dernière relance'
+    }
+
+    return {
+      startDate,
+      hoursSinceStart,
+      daysSinceStart,
+      canRelance1: hoursSinceStart >= 72 && !lead.whatsapp_relance_1_at,
+      canRelance2: daysSinceStart >= 7 && !lead.whatsapp_relance_2_at, // Après 1 semaine
+      canRelance3: daysSinceStart >= 7 && !lead.whatsapp_relance_3_at && lead.whatsapp_relance_2_at, // Dernière relance après 1 semaine ET après relance 2
+      nextRelanceIn,
+      nextRelanceType,
+    }
+  }
+
+  const relanceStatus = getRelanceStatus()
 
   return (
     <tr className="hover:bg-white/5 transition-colors">
@@ -199,6 +364,26 @@ export default function GestionRow({ lead, showWhatsAppGroup = false, showDocume
           </div>
         )}
       </td>
+      {showDocuments && (
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="text-sm text-white/70">
+            {lead.closer ? (
+              <div>
+                <div className="font-semibold text-white">
+                  {lead.closer.full_name || lead.closer.email}
+                </div>
+                {lead.closer.full_name && (
+                  <div className="text-xs text-white/40 font-light">
+                    {lead.closer.email}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <span className="text-white/30 italic">Non assigné</span>
+            )}
+          </div>
+        </td>
+      )}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center gap-2">
           {/* Bouton 1 : Générer documents et envoyer (uniquement pour leads closés) */}
@@ -242,32 +427,90 @@ export default function GestionRow({ lead, showWhatsAppGroup = false, showDocume
             </div>
           )}
 
-          {/* Bouton 2 : Créer groupe WhatsApp (uniquement pour leads chauds) */}
+          {/* Bouton 2 : Ouvrir conversation WhatsApp (uniquement pour leads chauds) */}
           {showWhatsAppGroup && (
-            <button
-              onClick={handleCreateWhatsAppGroup}
-              disabled={loading === 'whatsapp-group'}
-              className="px-4 py-2 bg-green-500/20 text-green-300 rounded-lg text-sm font-medium hover:bg-green-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading === 'whatsapp-group' ? 'Création...' : '📱 Créer groupe WhatsApp'}
-            </button>
+            <div className="flex flex-col gap-2">
+              {lead.whatsapp_conversation_started_at ? (
+                <div className="space-y-2">
+                  <div className="px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-lg text-xs font-medium">
+                    💬 Conversation WhatsApp en cours depuis le {format(new Date(lead.whatsapp_conversation_started_at), 'dd MMM yyyy', { locale: fr })}
+                  </div>
+                  <button
+                    onClick={handleOpenWhatsApp}
+                    disabled={loading === 'whatsapp-open'}
+                    className="px-3 py-1.5 bg-green-500/20 text-green-300 rounded-lg text-xs font-medium hover:bg-green-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading === 'whatsapp-open' ? 'Ouverture...' : '💬 Ouvrir conversation'}
+                  </button>
+                  
+                  {/* Timer pour la prochaine relance (si pas closé) */}
+                  {lead.status !== 'clos' && relanceStatus && relanceStatus.nextRelanceIn && (
+                    <div className="px-3 py-1.5 bg-yellow-500/20 text-yellow-300 rounded-lg text-xs font-medium border border-yellow-500/30">
+                      ⏱ {relanceStatus.nextRelanceType} dans {relanceStatus.nextRelanceIn}
+                    </div>
+                  )}
+                  
+                  {/* Boutons de relance */}
+                  {relanceStatus && (
+                    <div className="flex flex-col gap-1">
+                      {relanceStatus.canRelance1 && (
+                        <button
+                          onClick={() => handleRelance(1)}
+                          disabled={loading === 'relance-1'}
+                          className="px-3 py-1 bg-orange-500/20 text-orange-300 rounded-lg text-xs font-medium hover:bg-orange-500/30 transition disabled:opacity-50"
+                        >
+                          {loading === 'relance-1' ? '...' : '📞 Relance 1 (72h)'}
+                        </button>
+                      )}
+                      {relanceStatus.canRelance2 && (
+                        <button
+                          onClick={() => handleRelance(2)}
+                          disabled={loading === 'relance-2'}
+                          className="px-3 py-1 bg-orange-500/20 text-orange-300 rounded-lg text-xs font-medium hover:bg-orange-500/30 transition disabled:opacity-50"
+                        >
+                          {loading === 'relance-2' ? '...' : '📞 Relance 2 (1 semaine)'}
+                        </button>
+                      )}
+                      {relanceStatus.canRelance3 && (
+                        <button
+                          onClick={() => handleRelance(3)}
+                          disabled={loading === 'relance-3'}
+                          className="px-3 py-1 bg-red-500/20 text-red-300 rounded-lg text-xs font-medium hover:bg-red-500/30 transition disabled:opacity-50"
+                        >
+                          {loading === 'relance-3' ? '...' : '📞 Dernière relance'}
+                        </button>
+                      )}
+                      {lead.whatsapp_relance_1_at && (
+                        <div className="text-xs text-white/40">
+                          Relance 1: {format(new Date(lead.whatsapp_relance_1_at), 'dd MMM yyyy', { locale: fr })}
+                        </div>
+                      )}
+                      {lead.whatsapp_relance_2_at && (
+                        <div className="text-xs text-white/40">
+                          Relance 2: {format(new Date(lead.whatsapp_relance_2_at), 'dd MMM yyyy', { locale: fr })}
+                        </div>
+                      )}
+                      {lead.whatsapp_relance_3_at && (
+                        <div className="text-xs text-white/40">
+                          Dernière relance: {format(new Date(lead.whatsapp_relance_3_at), 'dd MMM yyyy', { locale: fr })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={handleOpenWhatsApp}
+                  disabled={loading === 'whatsapp-open'}
+                  className="px-4 py-2 bg-green-500/20 text-green-300 rounded-lg text-sm font-medium hover:bg-green-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading === 'whatsapp-open' ? 'Ouverture...' : '💬 Ouvrir conversation WhatsApp'}
+                </button>
+              )}
+            </div>
           )}
         </div>
       </td>
-
-      {/* Modal WhatsApp */}
-      {showWhatsAppModal && (
-        <WhatsAppGroupModal
-          lead={{
-            id: lead.id,
-            first_name: lead.first_name,
-            last_name: lead.last_name,
-            phone: lead.phone,
-          }}
-          onClose={() => setShowWhatsAppModal(false)}
-          onSuccess={handleWhatsAppSuccess}
-        />
-      )}
     </tr>
   )
 }

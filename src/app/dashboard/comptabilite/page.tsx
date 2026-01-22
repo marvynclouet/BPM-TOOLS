@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getCurrentUser } from '@/lib/auth'
 import AccountingTable from '@/components/comptabilite/AccountingTable'
 
 export default async function ComptabilitePage() {
@@ -13,6 +14,12 @@ export default async function ComptabilitePage() {
 
   if (!authUser) {
     redirect('/login')
+  }
+
+  // Vérifier que l'utilisateur est admin
+  const user = await getCurrentUser()
+  if (!user || user.role !== 'admin') {
+    redirect('/dashboard')
   }
 
   // Utiliser le client admin pour bypasser RLS

@@ -191,10 +191,10 @@ export default function AddLeadModal({ onClose, onSave, currentUserId }: AddLead
               <option value="nrp">📞 NRP</option>
               <option value="en_cours_de_closing">👍 En cours de closing</option>
               <option value="acompte_en_cours">💰 Acompte en cours</option>
-              <option value="appele">Appelé</option>
-              <option value="acompte_regle">Acompte réglé</option>
-              <option value="clos">Closé</option>
-              <option value="ko">KO</option>
+              <option value="appele">📞 Appelé</option>
+              <option value="acompte_regle">💰 Acompte réglé</option>
+              <option value="clos">✅ Closé</option>
+              <option value="ko">❌ KO</option>
             </select>
           </div>
 

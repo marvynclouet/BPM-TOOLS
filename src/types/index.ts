@@ -38,6 +38,10 @@ export interface Lead {
   formation_start_date: string | null
   interest_level: InterestLevel | null
   documents_sent_at: string | null
+  whatsapp_conversation_started_at: string | null
+  whatsapp_relance_1_at: string | null
+  whatsapp_relance_2_at: string | null
+  whatsapp_relance_3_at: string | null
   created_at: string
   updated_at: string
   last_action_at: string | null

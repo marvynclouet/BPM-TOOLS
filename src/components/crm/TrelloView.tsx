@@ -367,10 +367,10 @@ function LeadCard({
            lead.status === 'nrp' ? '📞 NRP' :
            lead.status === 'en_cours_de_closing' ? '👍 En cours de closing' :
            lead.status === 'acompte_en_cours' ? '💰 Acompte en cours' :
-           lead.status === 'appele' ? 'Appelé' : 
-           lead.status === 'acompte_regle' ? 'Acompte réglé' :
-           lead.status === 'clos' ? 'Closé' : 
-           lead.status === 'ko' ? 'KO' : 'Nouveau'}
+           lead.status === 'appele' ? '📞 Appelé' : 
+           lead.status === 'acompte_regle' ? '💰 Acompte réglé' :
+           lead.status === 'clos' ? '✅ Closé' : 
+           lead.status === 'ko' ? '❌ KO' : '👶 Nouveau'}
         </span>
       </div>
 

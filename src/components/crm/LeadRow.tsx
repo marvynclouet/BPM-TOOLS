@@ -62,10 +62,10 @@ export default function LeadRow({ lead, currentUser }: LeadRowProps) {
     nrp: '📞 NRP',
     en_cours_de_closing: '👍 En cours de closing',
     acompte_en_cours: '💰 Acompte en cours',
-    appele: 'Appelé',
-    acompte_regle: 'Acompte réglé',
-    clos: 'Closé',
-    ko: 'KO',
+    appele: '📞 Appelé',
+    acompte_regle: '💰 Acompte réglé',
+    clos: '✅ Closé',
+    ko: '❌ KO',
   }
 
   const formationLabels: Record<string, string> = {

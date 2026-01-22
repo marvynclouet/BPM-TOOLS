@@ -26,14 +26,22 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
     router.refresh()
   }
 
-  const navItems = [
+  const allNavItems = [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/dashboard/crm', label: 'CRM' },
-    { href: '/dashboard/comptabilite', label: 'Comptabilité' },
+    { href: '/dashboard/comptabilite', label: 'Comptabilité', adminOnly: true },
     { href: '/dashboard/planning', label: 'Planning' },
     { href: '/dashboard/gestion', label: 'Gestion' },
     { href: '/dashboard/mon-espace', label: 'Mon Espace' },
   ]
+
+  // Filtrer les items selon le rôle (seuls les admins voient Comptabilité)
+  const navItems = allNavItems.filter(item => {
+    if (item.adminOnly && user.role !== 'admin') {
+      return false
+    }
+    return true
+  })
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white">

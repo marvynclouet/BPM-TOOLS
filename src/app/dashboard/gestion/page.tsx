@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUser } from '@/lib/auth'
 import GestionTable from '@/components/gestion/GestionTable'
+import AutoRelanceChecker from '@/components/gestion/AutoRelanceChecker'
 
 export default async function GestionPage() {
   const supabase = await createClient()
@@ -23,20 +24,41 @@ export default async function GestionPage() {
   const adminClient = createAdminClient()
   
     // 1. Récupérer les leads "chauds" attribués à l'utilisateur connecté
+    // Inclut: interest_level='chaud' OU status='en_cours_de_closing' OU status='acompte_en_cours'
     // Note: Un lead chaud peut ne pas avoir de planning encore
     const { data: hotLeads, error: hotLeadsError } = await adminClient
       .from('leads')
       .select('*')
-      .eq('interest_level', 'chaud')
       .eq('closer_id', currentUserId)
+      .or('interest_level.eq.chaud,status.eq.en_cours_de_closing,status.eq.acompte_en_cours')
       .order('created_at', { ascending: false })
 
-  // 2. Récupérer tous les leads closés
+  // 2. Récupérer tous les leads closés avec le closer
   const { data: closedLeads, error: closedLeadsError } = await adminClient
     .from('leads')
     .select('*')
     .eq('status', 'clos')
     .order('created_at', { ascending: false })
+
+  // Récupérer les informations des closers pour les leads closés
+  const closerIds = [...new Set((closedLeads || []).map(l => l.closer_id).filter(Boolean))]
+  let closersMap: Record<string, { full_name: string | null; email: string }> = {}
+  
+  if (closerIds.length > 0) {
+    const { data: closers } = await adminClient
+      .from('users')
+      .select('id, full_name, email')
+      .in('id', closerIds)
+    
+    if (closers) {
+      closers.forEach(closer => {
+        closersMap[closer.id] = {
+          full_name: closer.full_name,
+          email: closer.email,
+        }
+      })
+    }
+  }
 
   // Récupérer les entrées de planning pour tous les leads
   const allLeadIds = [
@@ -63,6 +85,7 @@ export default async function GestionPage() {
   const closedLeadsWithPlanning = (closedLeads || []).map(lead => ({
     ...lead,
     planning: planningEntries.filter(p => p.lead_id === lead.id),
+    closer: lead.closer_id ? closersMap[lead.closer_id] : null,
   }))
 
   if (hotLeadsError || closedLeadsError) {
@@ -71,12 +94,13 @@ export default async function GestionPage() {
 
   return (
     <div className="space-y-8 pb-12">
+      <AutoRelanceChecker />
       <div className="space-y-2">
         <h1 className="text-4xl font-semibold tracking-tight">Gestion</h1>
         <p className="text-white/50 text-lg">Gestion des leads chauds et élèves closés</p>
       </div>
 
-      {/* Section 1 : Leads chauds (pour créer groupes WhatsApp) */}
+      {/* Section 1 : Leads chauds (pour ouvrir conversations WhatsApp) */}
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <h2 className="text-2xl font-semibold tracking-tight">🔥 Leads chauds</h2>
@@ -84,7 +108,7 @@ export default async function GestionPage() {
             {hotLeadsWithPlanning.length}
           </span>
         </div>
-        <p className="text-white/50 text-sm">Leads chauds attribués à vous - Créez des groupes WhatsApp</p>
+        <p className="text-white/50 text-sm">Leads chauds, en cours de closing et acompte en cours - Ouvrez des conversations WhatsApp</p>
         <GestionTable 
           leads={hotLeadsWithPlanning} 
           showWhatsAppGroup={true}

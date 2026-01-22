@@ -44,6 +44,7 @@ export default function AccountingTable({ entries }: AccountingTableProps) {
     window.location.reload()
   }
 
+  // Calculer les totaux globaux
   const totalAmount = entries.reduce((sum, entry) => sum + Number(entry.amount), 0)
   const totalCommissionCloser = entries.reduce(
     (sum, entry) => sum + Number(entry.commission_closer),
@@ -53,27 +54,74 @@ export default function AccountingTable({ entries }: AccountingTableProps) {
     (sum, entry) => sum + Number(entry.commission_formateur),
     0
   )
+  const totalNet = totalAmount - totalCommissionCloser - totalCommissionFormateur
+
+  // Calculer les statistiques du mois en cours
+  const now = new Date()
+  const currentMonth = now.getMonth()
+  const currentYear = now.getFullYear()
+
+  const entriesThisMonth = entries.filter(entry => {
+    const entryDate = new Date(entry.created_at)
+    return entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear
+  })
+
+  const caBrutMois = entriesThisMonth.reduce((sum, entry) => sum + Number(entry.amount), 0)
+  const commissionsMois = entriesThisMonth.reduce(
+    (sum, entry) => sum + Number(entry.commission_closer) + Number(entry.commission_formateur),
+    0
+  )
+  const caNetMois = caBrutMois - commissionsMois
+  const beneficeMois = caNetMois // Pour l'instant, bénéfice = CA net (on peut ajouter des coûts plus tard)
 
   return (
     <div className="space-y-8">
-      {/* Totaux */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        <div className="apple-card rounded-2xl p-6">
-          <div className="text-sm text-white/60 mb-2 font-medium">CA Total</div>
-          <div className="text-3xl font-semibold tracking-tight">{totalAmount.toFixed(2)} €</div>
+      {/* Statistiques du mois en cours */}
+      <div className="space-y-3">
+        <h2 className="text-xl font-semibold text-white">
+          Statistiques du mois ({format(now, 'MMMM yyyy', { locale: fr })})
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+          <div className="apple-card rounded-2xl p-6 border-2 border-blue-500/30">
+            <div className="text-sm text-white/60 mb-2 font-medium">CA Brut</div>
+            <div className="text-3xl font-semibold tracking-tight text-blue-300">{caBrutMois.toFixed(2)} €</div>
+          </div>
+          <div className="apple-card rounded-2xl p-6 border-2 border-purple-500/30">
+            <div className="text-sm text-white/60 mb-2 font-medium">CA Net</div>
+            <div className="text-3xl font-semibold tracking-tight text-purple-300">{caNetMois.toFixed(2)} €</div>
+          </div>
+          <div className="apple-card rounded-2xl p-6 border-2 border-orange-500/30">
+            <div className="text-sm text-white/60 mb-2 font-medium">Commissions</div>
+            <div className="text-3xl font-semibold tracking-tight text-orange-300">{commissionsMois.toFixed(2)} €</div>
+          </div>
+          <div className="apple-card rounded-2xl p-6 border-2 border-green-500/30">
+            <div className="text-sm text-white/60 mb-2 font-medium">Bénéfice</div>
+            <div className="text-3xl font-semibold tracking-tight text-green-300">{beneficeMois.toFixed(2)} €</div>
+          </div>
         </div>
-        <div className="apple-card rounded-2xl p-6">
-          <div className="text-sm text-white/60 mb-2 font-medium">Commissions Closers</div>
-          <div className="text-3xl font-semibold tracking-tight">{totalCommissionCloser.toFixed(2)} €</div>
-        </div>
-        <div className="apple-card rounded-2xl p-6">
-          <div className="text-sm text-white/60 mb-2 font-medium">Commissions Formateurs</div>
-          <div className="text-3xl font-semibold tracking-tight">{totalCommissionFormateur.toFixed(2)} €</div>
-        </div>
-        <div className="apple-card rounded-2xl p-6">
-          <div className="text-sm text-white/60 mb-2 font-medium">Net</div>
-          <div className="text-3xl font-semibold tracking-tight">
-            {(totalAmount - totalCommissionCloser - totalCommissionFormateur).toFixed(2)} €
+      </div>
+
+      {/* Totaux globaux */}
+      <div className="space-y-3">
+        <h2 className="text-xl font-semibold text-white">Totaux globaux</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+          <div className="apple-card rounded-2xl p-6">
+            <div className="text-sm text-white/60 mb-2 font-medium">CA Total</div>
+            <div className="text-3xl font-semibold tracking-tight">{totalAmount.toFixed(2)} €</div>
+          </div>
+          <div className="apple-card rounded-2xl p-6">
+            <div className="text-sm text-white/60 mb-2 font-medium">Commissions Closers</div>
+            <div className="text-3xl font-semibold tracking-tight">{totalCommissionCloser.toFixed(2)} €</div>
+          </div>
+          <div className="apple-card rounded-2xl p-6">
+            <div className="text-sm text-white/60 mb-2 font-medium">Commissions Formateurs</div>
+            <div className="text-3xl font-semibold tracking-tight">{totalCommissionFormateur.toFixed(2)} €</div>
+          </div>
+          <div className="apple-card rounded-2xl p-6">
+            <div className="text-sm text-white/60 mb-2 font-medium">Net</div>
+            <div className="text-3xl font-semibold tracking-tight">
+              {totalNet.toFixed(2)} €
+            </div>
           </div>
         </div>
       </div>

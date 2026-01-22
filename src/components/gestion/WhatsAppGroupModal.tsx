@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 interface WhatsAppGroupModalProps {
   lead: {
@@ -17,6 +18,12 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState<'instructions' | 'creating' | 'success'>('instructions')
   const [result, setResult] = useState<{ whatsappUrl: string; method: string; groupId?: string } | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
 
   const handleCreateGroup = async () => {
     setLoading(true)
@@ -56,21 +63,21 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-white/10 border border-white/20 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black z-[9999]" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <div className="w-full h-full bg-[#1a1a1a] flex flex-col">
         {/* En-tête */}
-        <div className="flex justify-between items-center p-6 border-b border-white/10 flex-shrink-0">
-          <h2 className="text-2xl font-semibold text-white">📱 Créer un groupe WhatsApp</h2>
+        <div className="flex justify-between items-center p-6 border-b border-white/20 flex-shrink-0 bg-[#1a1a1a]">
+          <h2 className="text-3xl font-bold text-white pr-4">💬 Conversation WhatsApp</h2>
           <button
             onClick={onClose}
-            className="text-white/70 hover:text-white text-2xl"
+            className="text-white hover:text-white text-4xl flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/20 transition font-light"
           >
             ×
           </button>
         </div>
 
-        {/* Contenu */}
-        <div className="overflow-y-auto flex-1 p-6">
+        {/* Contenu scrollable */}
+        <div className="overflow-y-auto flex-1 p-8 min-h-0 bg-[#1a1a1a]">
           {step === 'instructions' && (
             <div className="space-y-4">
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
@@ -81,7 +88,10 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
 
               <div className="space-y-3">
                 <p className="text-white/70 text-sm">
-                  Un groupe WhatsApp sera créé avec un message de résumé incluant :
+                  Une conversation WhatsApp sera ouverte avec un message de résumé incluant :
+                </p>
+                <p className="text-white/50 text-xs mt-2">
+                  💡 Le message sera pré-rempli dans WhatsApp, il suffit de cliquer sur &quot;Envoyer&quot;.
                 </p>
                 <ul className="list-disc list-inside space-y-2 text-white/60 text-sm ml-2">
                   <li>Les informations de la formation</li>
@@ -95,75 +105,64 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
           )}
 
           {step === 'creating' && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="animate-pulse-soft mb-4">
-                <span className="text-6xl">📱</span>
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="animate-pulse-soft mb-6">
+                <span className="text-8xl">💬</span>
               </div>
-              <p className="text-white/70 text-center">Création du groupe WhatsApp...</p>
+              <p className="text-white text-xl font-medium text-center">Préparation de la conversation WhatsApp...</p>
             </div>
           )}
 
           {step === 'success' && result && (
-            <div className="space-y-4">
-              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
-                <span className="text-4xl mb-2 block">✅</span>
-                <p className="text-green-300 font-semibold mb-1">
-                  {result.method === 'api' 
-                    ? 'Groupe créé avec succès !' 
-                    : 'Instructions générées !'}
+            <div className="space-y-6 max-w-2xl mx-auto w-full">
+              <div className="bg-green-500/20 border-2 border-green-500/40 rounded-2xl p-6 text-center">
+                <span className="text-6xl mb-4 block">✅</span>
+                <p className="text-green-300 text-2xl font-bold mb-2">
+                  Conversation WhatsApp prête !
                 </p>
               </div>
 
-              {result.method === 'api' ? (
-                <div className="space-y-3">
-                  <div className="bg-white/5 rounded-xl p-4">
-                    <p className="text-xs text-white/50 mb-2">Lien d&apos;invitation :</p>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={result.whatsappUrl}
-                        readOnly
-                        className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                      />
-                      <button
-                        onClick={copyInviteLink}
-                        className="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg text-sm font-medium hover:bg-blue-500/30 transition"
-                      >
-                        Copier
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-white/60 text-xs text-center">
-                    Le message a été envoyé à l&apos;élève avec le lien d&apos;invitation.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-white/70 text-sm">
-                    WhatsApp va s&apos;ouvrir avec les instructions. Suivez les étapes pour créer le groupe manuellement.
-                  </p>
-                  <div className="bg-white/5 rounded-xl p-4">
-                    <p className="text-xs text-white/50 mb-2">Lien WhatsApp :</p>
+              <div className="space-y-4">
+                <p className="text-white text-lg text-center font-medium">
+                  Cliquez sur le bouton ci-dessous pour ouvrir une conversation WhatsApp avec {lead.first_name} {lead.last_name} et lui envoyer le message de résumé.
+                </p>
+                <div className="bg-white/5 rounded-2xl p-6 space-y-4 border border-white/10">
+                  <p className="text-sm text-white/60 mb-2 font-medium">Lien de conversation WhatsApp :</p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      value={result.whatsappUrl}
+                      readOnly
+                      className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white text-base"
+                    />
                     <button
-                      onClick={() => window.open(result.whatsappUrl, '_blank')}
-                      className="w-full px-4 py-3 bg-green-500/20 text-green-300 rounded-lg text-sm font-medium hover:bg-green-500/30 transition"
+                      onClick={copyInviteLink}
+                      className="px-6 py-3 bg-blue-500/30 text-blue-200 rounded-xl text-base font-semibold hover:bg-blue-500/40 transition border border-blue-500/30"
                     >
-                      Ouvrir WhatsApp
+                      Copier
                     </button>
                   </div>
+                  <a
+                    href={result.whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full px-8 py-4 bg-green-500/30 text-green-200 rounded-xl text-center text-lg font-bold hover:bg-green-500/40 transition border-2 border-green-500/40 shadow-lg"
+                  >
+                    💬 Ouvrir la conversation WhatsApp
+                  </a>
                 </div>
-              )}
+              </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
         {step !== 'success' && (
-          <div className="flex justify-end gap-3 p-6 border-t border-white/10 flex-shrink-0">
+          <div className="flex justify-end gap-4 p-8 border-t-2 border-white/20 flex-shrink-0 bg-[#1a1a1a]">
             <button
               onClick={onClose}
               disabled={loading}
-              className="px-6 py-2 bg-white/10 border border-white/20 rounded-xl text-white hover:bg-white/20 transition disabled:opacity-50"
+              className="px-8 py-3 bg-white/10 border-2 border-white/20 rounded-xl text-white text-base font-semibold hover:bg-white/20 transition disabled:opacity-50"
             >
               Annuler
             </button>
@@ -171,19 +170,19 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
               <button
                 onClick={handleCreateGroup}
                 disabled={loading}
-                className="px-6 py-2 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition disabled:opacity-50"
+                className="px-8 py-3 bg-green-500 text-white rounded-xl text-base font-bold hover:bg-green-600 transition disabled:opacity-50 shadow-lg"
               >
-                Créer le groupe
+                Préparer la conversation
               </button>
             )}
           </div>
         )}
 
         {step === 'success' && (
-          <div className="flex justify-end gap-3 p-6 border-t border-white/10 flex-shrink-0">
+          <div className="flex justify-end gap-4 p-8 border-t-2 border-white/20 flex-shrink-0 bg-[#1a1a1a]">
             <button
               onClick={onClose}
-              className="px-6 py-2 bg-white text-black rounded-xl font-semibold hover:bg-white/90 transition"
+              className="px-8 py-3 bg-white text-black rounded-xl text-base font-bold hover:bg-white/90 transition shadow-lg"
             >
               Fermer
             </button>
@@ -192,4 +191,8 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
       </div>
     </div>
   )
+
+  if (!mounted) return null
+
+  return createPortal(modalContent, document.body)
 }

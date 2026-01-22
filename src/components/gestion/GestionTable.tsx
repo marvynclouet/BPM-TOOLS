@@ -26,6 +26,10 @@ interface ClosedLead {
   formation_start_date: string | null
   created_at: string
   planning: PlanningEntry[]
+  closer: {
+    full_name: string | null
+    email: string
+  } | null
 }
 
 interface GestionTableProps {
@@ -82,6 +86,11 @@ export default function GestionTable({ leads, showWhatsAppGroup = false, showDoc
               <th className="px-6 py-4 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">
                 Prix
               </th>
+              {showDocuments && (
+                <th className="px-6 py-4 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">
+                  Closer
+                </th>
+              )}
               <th className="px-6 py-4 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">
                 Actions
               </th>
