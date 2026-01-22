@@ -1,0 +1,365 @@
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import Link from 'next/link'
+import PieChart from '@/components/dashboard/PieChart'
+import MiniCalendar from '@/components/dashboard/MiniCalendar'
+import RecentLeads from '@/components/dashboard/RecentLeads'
+import ActivityChart from '@/components/dashboard/ActivityChart'
+import ClosersRanking from '@/components/dashboard/ClosersRanking'
+
+export default async function DashboardPage() {
+  try {
+    const supabase = await createClient()
+    
+    // Vérifier simplement si connecté
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !authUser) {
+      console.log('❌ Dashboard Page - Auth Error:', authError?.message || 'No user')
+      redirect('/login')
+    }
+
+    const adminClient = createAdminClient()
+
+    // Essayer de récupérer les KPIs, mais si ça échoue, on affiche quand même la page
+    let leads24h = { count: 0 }
+    let leads7d = { count: 0 }
+    let leadsAppeles = { count: 0 }
+    let leadsPayes = { count: 0 }
+    let totalAppeles = 0
+    let totalClos = 0
+    let recentLeads: any[] = []
+    let planningEntries: any[] = []
+    let statusDistribution: any[] = []
+    let allLeadsForChart: any[] = []
+    let closersRanking: any[] = []
+
+    try {
+      const now = new Date()
+      const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+      const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+      const [leads24hResult, leads7dResult, leadsAppelesResult, leadsPayesResult, recentLeadsResult, planningResult, statusResult, allLeadsResult] = await Promise.all([
+        adminClient
+          .from('leads')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', last24h.toISOString()),
+        adminClient
+          .from('leads')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', last7d.toISOString()),
+        adminClient
+          .from('leads')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'appele'),
+        adminClient
+          .from('leads')
+          .select('id', { count: 'exact', head: true })
+          .in('status', ['paye', 'clos']),
+        adminClient
+          .from('leads')
+          .select('id, first_name, last_name, phone, formation, status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(6),
+        adminClient
+          .from('planning')
+          .select('*, leads:lead_id(first_name, last_name, formation, formation_format)')
+          .gte('start_date', now.toISOString())
+          .lte('end_date', new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString())
+          .order('start_date', { ascending: true }),
+        adminClient
+          .from('leads')
+          .select('status', { count: 'exact' })
+          .in('status', ['nouveau', 'appele', 'acompte_regle', 'clos', 'ko']),
+        adminClient
+          .from('leads')
+          .select('created_at')
+          .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+          .order('created_at', { ascending: true }),
+      ])
+
+      leads24h = leads24hResult
+      leads7d = leads7dResult
+      leadsAppeles = leadsAppelesResult
+      leadsPayes = leadsPayesResult
+      recentLeads = recentLeadsResult.data || []
+      planningEntries = planningResult.data || []
+      allLeadsForChart = allLeadsResult.data || []
+
+      // Calculer la distribution des statuts
+      const statusCounts: Record<string, number> = {}
+      if (statusResult.data) {
+        statusResult.data.forEach((item: any) => {
+          statusCounts[item.status] = (statusCounts[item.status] || 0) + 1
+        })
+      }
+      statusDistribution = [
+        { label: 'Nouveau', value: statusCounts['nouveau'] || 0, color: 'bg-blue-500' },
+        { label: 'Appelé', value: statusCounts['appele'] || 0, color: 'bg-purple-500' },
+        { label: 'Acompte réglé', value: statusCounts['acompte_regle'] || 0, color: 'bg-orange-500' },
+        { label: 'Closé', value: statusCounts['clos'] || 0, color: 'bg-green-500' },
+        { label: 'KO', value: statusCounts['ko'] || 0, color: 'bg-red-500' },
+      ]
+
+      // Closing rate
+      const { count: totalAppelesResult } = await adminClient
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['appele', 'acompte_regle', 'clos'])
+
+      const { count: totalClosResult } = await adminClient
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'clos')
+
+      totalAppeles = totalAppelesResult || 0
+      totalClos = totalClosResult || 0
+
+      // Calculer le classement des closers du mois
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      
+      // Récupérer les entrées comptables du mois
+      const { data: monthAccountingEntries } = await adminClient
+        .from('accounting_entries')
+        .select('*, leads:lead_id(closer_id, first_name, last_name)')
+        .gte('created_at', startOfMonth.toISOString())
+        .order('created_at', { ascending: false })
+
+      // Récupérer les IDs des closers
+      const closerIds = [...new Set(
+        (monthAccountingEntries || [])
+          .map((entry: any) => entry.leads?.closer_id)
+          .filter(Boolean)
+      )]
+
+      // Récupérer les infos des closers
+      let closersInfo: any[] = []
+      if (closerIds.length > 0) {
+        const { data: closersData } = await adminClient
+          .from('users')
+          .select('id, full_name, email')
+          .in('id', closerIds)
+        
+        closersInfo = closersData || []
+      }
+
+      // Calculer les stats par closer
+      const statsByCloser: Record<string, {
+        closer_id: string
+        closer_name: string
+        closer_email: string
+        totalCA: number
+        totalCommissions: number
+        totalSales: number
+        closedLeads: number
+      }> = {}
+
+      // Compter les leads closés par closer
+      const { data: closedLeadsData } = await adminClient
+        .from('leads')
+        .select('closer_id')
+        .in('status', ['clos', 'acompte_regle'])
+        .gte('updated_at', startOfMonth.toISOString())
+        .not('closer_id', 'is', null)
+
+      const closedLeadsByCloser: Record<string, number> = {}
+      closedLeadsData?.forEach((lead: any) => {
+        if (lead.closer_id) {
+          closedLeadsByCloser[lead.closer_id] = (closedLeadsByCloser[lead.closer_id] || 0) + 1
+        }
+      })
+
+      // Agréger les stats
+      monthAccountingEntries?.forEach((entry: any) => {
+        const closerId = entry.leads?.closer_id
+        if (!closerId) return
+
+        const closerInfo = closersInfo.find(c => c.id === closerId)
+        
+        if (!statsByCloser[closerId]) {
+          statsByCloser[closerId] = {
+            closer_id: closerId,
+            closer_name: closerInfo?.full_name || '',
+            closer_email: closerInfo?.email || '',
+            totalCA: 0,
+            totalCommissions: 0,
+            totalSales: 0,
+            closedLeads: closedLeadsByCloser[closerId] || 0,
+          }
+        }
+
+        statsByCloser[closerId].totalCA += Number(entry.amount || 0)
+        statsByCloser[closerId].totalCommissions += Number(entry.commission_closer || 0)
+        statsByCloser[closerId].totalSales += 1
+      })
+
+      closersRanking = Object.values(statsByCloser)
+    } catch (dbError: any) {
+      console.log('⚠️ Erreur DB (mais on continue):', dbError.message)
+      // On continue quand même avec des valeurs par défaut
+    }
+
+    const closingRate =
+      totalAppeles && totalAppeles > 0
+        ? ((totalClos || 0) / totalAppeles) * 100
+        : 0
+
+    return (
+      <div className="space-y-4 animate-fade-in pb-6">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-white/50 text-sm">Vue d'ensemble de l'activité</p>
+        </div>
+
+        {/* KPIs avec animations */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <KPICard
+            title="Nouveaux leads (24h)"
+            value={leads24h.count || 0}
+            subtitle={`${leads7d.count || 0} sur 7 jours`}
+            icon="📈"
+            color="blue"
+          />
+          <KPICard
+            title="Appelés"
+            value={leadsAppeles.count || 0}
+            subtitle="En attente de réponse"
+            icon="💬"
+            color="purple"
+          />
+          <KPICard
+            title="Payés"
+            value={leadsPayes.count || 0}
+            subtitle="Paiements confirmés"
+            icon="✅"
+            color="green"
+          />
+          <KPICard
+            title="Closing rate"
+            value={`${closingRate.toFixed(1)}%`}
+            subtitle={`${totalClos || 0} / ${totalAppeles || 0}`}
+            icon="📊"
+            color="orange"
+          />
+        </div>
+
+        {/* Graphique d'activité */}
+        <ActivityChart leads={allLeadsForChart} title="Activité des leads (30 derniers jours)" />
+
+        {/* Graphiques et données */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <PieChart
+            title="Répartition par statut"
+            data={statusDistribution}
+          />
+          <RecentLeads leads={recentLeads} />
+        </div>
+
+        {/* Classement des closers */}
+        {closersRanking.length > 0 && (
+          <ClosersRanking closersStats={closersRanking} period="month" />
+        )}
+
+        {/* Planning */}
+        <div>
+          <MiniCalendar entries={planningEntries} />
+        </div>
+
+        {/* Accès rapide alignés horizontalement */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <QuickAccessCard
+            href="/dashboard/crm"
+            title="CRM"
+            description="Gérer les leads et suivre les ventes"
+            icon="👥"
+          />
+          <QuickAccessCard
+            href="/dashboard/comptabilite"
+            title="Comptabilité"
+            description="Voir les ventes et exporter les données"
+            icon="💰"
+          />
+          <QuickAccessCard
+            href="/dashboard/planning"
+            title="Planning"
+            description="Gérer le planning des formations"
+            icon="📅"
+          />
+        </div>
+      </div>
+    )
+  } catch (error: any) {
+    console.error('❌ Dashboard Page - Unexpected error:', error.message)
+    redirect('/login')
+  }
+}
+
+function KPICard({
+  title,
+  value,
+  subtitle,
+  icon,
+  color = 'blue',
+}: {
+  title: string
+  value: string | number
+  subtitle?: string
+  icon?: string
+  color?: 'blue' | 'purple' | 'green' | 'orange' | 'red'
+}) {
+  const colorClasses = {
+    blue: 'border-blue-500/20',
+    purple: 'border-purple-500/20',
+    green: 'border-green-500/20',
+    orange: 'border-orange-500/20',
+    red: 'border-red-500/20',
+  }
+
+  const iconColors = {
+    blue: 'text-blue-400',
+    purple: 'text-purple-400',
+    green: 'text-green-400',
+    orange: 'text-orange-400',
+    red: 'text-red-400',
+  }
+
+  return (
+    <div className={`apple-card apple-card-hover rounded-xl p-4 ${colorClasses[color]}`}>
+      <div className="flex items-start justify-between mb-3">
+        <h3 className="text-xs font-medium text-white/60 tracking-wide uppercase">{title}</h3>
+        {icon && <span className={`text-xl ${iconColors[color]}`}>{icon}</span>}
+      </div>
+      <p className="text-3xl font-semibold mb-1 text-white tracking-tight animate-count-up">{value}</p>
+      {subtitle && <p className="text-xs text-white/40 font-light">{subtitle}</p>}
+    </div>
+  )
+}
+
+function QuickAccessCard({
+  href,
+  title,
+  description,
+  icon,
+}: {
+  href: string
+  title: string
+  description: string
+  icon?: string
+}) {
+  return (
+    <Link
+      href={href}
+      className="block apple-card apple-card-hover rounded-xl p-4 group"
+    >
+      <div className="flex items-center gap-2 mb-2">
+        {icon && <span className="text-2xl group-hover:scale-110 transition-transform duration-300">{icon}</span>}
+        <h3 className="text-lg font-semibold tracking-tight">{title}</h3>
+      </div>
+      <p className="text-xs text-white/50 font-light leading-relaxed">{description}</p>
+    </Link>
+  )
+}
