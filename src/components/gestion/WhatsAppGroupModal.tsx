@@ -86,7 +86,7 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
                 <ul className="list-disc list-inside space-y-2 text-white/60 text-sm ml-2">
                   <li>Les informations de la formation</li>
                   <li>Les dates de formation</li>
-                  <li>Le prix et l'acompte</li>
+                  <li>Le prix et l&apos;acompte</li>
                   <li>Un lien de paiement Stripe</li>
                 </ul>
               </div>
@@ -117,7 +117,7 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
               {result.method === 'api' ? (
                 <div className="space-y-3">
                   <div className="bg-white/5 rounded-xl p-4">
-                    <p className="text-xs text-white/50 mb-2">Lien d'invitation :</p>
+                    <p className="text-xs text-white/50 mb-2">Lien d&apos;invitation :</p>
                     <div className="flex items-center gap-2">
                       <input
                         type="text"

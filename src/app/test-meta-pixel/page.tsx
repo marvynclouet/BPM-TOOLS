@@ -113,7 +113,7 @@ export default function TestMetaPixelPage() {
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-white/30"
                 />
                 <p className="text-xs text-white/40 mt-2">
-                  Variable d'environnement: NEXT_PUBLIC_META_PIXEL_ID
+                  Variable d&apos;environnement: NEXT_PUBLIC_META_PIXEL_ID
                 </p>
               </div>
               <button

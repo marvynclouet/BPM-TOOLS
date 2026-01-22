@@ -22,8 +22,8 @@ export async function sendEmailWithDocuments(
   }
 
   try {
-    // Importer Resend
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // Importer Resend dynamiquement (require est nécessaire car resend n'a pas d'export ESM par défaut)
+    // eslint-disable-next-line
     const { Resend } = require('resend')
     const resend = new Resend(resendApiKey)
 

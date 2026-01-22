@@ -95,7 +95,7 @@ export default async function ComptabilitePage() {
                 <li>Allez dans le CRM</li>
                 <li>Sélectionnez un lead avec un prix fixé et un prix acompte</li>
                 <li>Cliquez sur &quot;Acompte réglé&quot; ou &quot;Paiement complet&quot;</li>
-                <li>L'entrée apparaîtra ici automatiquement</li>
+                <li>L&apos;entrée apparaîtra ici automatiquement</li>
               </ol>
             </div>
           </div>
