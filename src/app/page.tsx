@@ -16,7 +16,7 @@ export default async function Home() {
 
     redirect('/dashboard')
   } catch (error) {
-    // En cas d'erreur (variables manquantes, etc.), rediriger vers setup
-    redirect('/setup')
+    // En cas d'erreur, rediriger vers login (les variables sont configurées)
+    redirect('/login')
   }
 }
