@@ -30,6 +30,7 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
   const supabase = createClient()
   const [draggedLead, setDraggedLead] = useState<string | null>(null)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  const [mobileMoveLead, setMobileMoveLead] = useState<Lead | null>(null)
 
   const formationLabels: Record<string, string> = {
     inge_son: 'Ingé son',
@@ -118,10 +119,11 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
     e.preventDefault()
   }
 
-  const handleDrop = async (targetCloserId: string | 'nouveau' | 'ko') => {
-    if (!draggedLead || !currentUser?.id) return
+  const handleDrop = async (targetCloserId: string | 'nouveau' | 'ko', leadId?: string) => {
+    const leadIdToMove = leadId || draggedLead
+    if (!leadIdToMove || !currentUser?.id) return
 
-    const currentLead = leads.find(l => l.id === draggedLead)
+    const currentLead = leads.find(l => l.id === leadIdToMove)
     if (!currentLead) return
 
     try {
@@ -152,10 +154,11 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
       const { error } = await supabase
         .from('leads')
         .update(updateData)
-        .eq('id', draggedLead)
+        .eq('id', leadIdToMove)
 
       if (!error) {
         router.refresh()
+        setMobileMoveLead(null)
       } else {
         alert('Erreur lors du déplacement: ' + error.message)
       }
@@ -331,23 +334,43 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
                 {closerLeads.map((lead) => (
                   <div
                     key={lead.id}
-                    onClick={() => setSelectedLead(lead)}
-                    className={`p-3 rounded-lg border cursor-pointer transition ${getCardColor(lead.status)}`}
+                    className={`p-3 rounded-lg border transition ${getCardColor(lead.status)}`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold text-white text-sm">
-                        {lead.first_name} {lead.last_name}
-                      </span>
-                      <span className="text-lg">{getStatusEmoji(lead.status)}</span>
-                    </div>
-                    <div className="text-xs text-white/60">
-                      {formationLabels[lead.formation] || lead.formation}
-                    </div>
-                    {lead.interest_level && (
-                      <div className="text-xs text-white/50 mt-1">
-                        {interestLevelEmojis[lead.interest_level]} {lead.interest_level}
+                      <div
+                        onClick={() => setSelectedLead(lead)}
+                        className="flex-1 cursor-pointer"
+                      >
+                        <span className="font-semibold text-white text-sm">
+                          {lead.first_name} {lead.last_name}
+                        </span>
                       </div>
-                    )}
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{getStatusEmoji(lead.status)}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setMobileMoveLead(lead)
+                          }}
+                          className="px-2 py-1 bg-white/10 hover:bg-white/20 rounded text-xs text-white/70 transition"
+                        >
+                          📤
+                        </button>
+                      </div>
+                    </div>
+                    <div
+                      onClick={() => setSelectedLead(lead)}
+                      className="cursor-pointer"
+                    >
+                      <div className="text-xs text-white/60">
+                        {formationLabels[lead.formation] || lead.formation}
+                      </div>
+                      {lead.interest_level && (
+                        <div className="text-xs text-white/50 mt-1">
+                          {interestLevelEmojis[lead.interest_level]} {lead.interest_level}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -362,17 +385,37 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
               {leads.filter(l => !l.closer_id || !closers.find(c => c.id === l.closer_id)).map((lead) => (
                 <div
                   key={lead.id}
-                  onClick={() => setSelectedLead(lead)}
-                  className={`p-3 rounded-lg border cursor-pointer transition ${getCardColor(lead.status)}`}
+                  className={`p-3 rounded-lg border transition ${getCardColor(lead.status)}`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-white text-sm">
-                      {lead.first_name} {lead.last_name}
-                    </span>
-                    <span className="text-lg">{getStatusEmoji(lead.status)}</span>
+                    <div
+                      onClick={() => setSelectedLead(lead)}
+                      className="flex-1 cursor-pointer"
+                    >
+                      <span className="font-semibold text-white text-sm">
+                        {lead.first_name} {lead.last_name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{getStatusEmoji(lead.status)}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setMobileMoveLead(lead)
+                        }}
+                        className="px-2 py-1 bg-white/10 hover:bg-white/20 rounded text-xs text-white/70 transition"
+                      >
+                        📤
+                      </button>
+                    </div>
                   </div>
-                  <div className="text-xs text-white/60">
-                    {formationLabels[lead.formation] || lead.formation}
+                  <div
+                    onClick={() => setSelectedLead(lead)}
+                    className="cursor-pointer"
+                  >
+                    <div className="text-xs text-white/60">
+                      {formationLabels[lead.formation] || lead.formation}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -387,17 +430,37 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
               {leads.filter(l => l.status === 'ko').map((lead) => (
                 <div
                   key={lead.id}
-                  onClick={() => setSelectedLead(lead)}
-                  className={`p-3 rounded-lg border cursor-pointer transition ${getCardColor(lead.status)}`}
+                  className={`p-3 rounded-lg border transition ${getCardColor(lead.status)}`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-white text-sm">
-                      {lead.first_name} {lead.last_name}
-                    </span>
-                    <span className="text-lg">{getStatusEmoji(lead.status)}</span>
+                    <div
+                      onClick={() => setSelectedLead(lead)}
+                      className="flex-1 cursor-pointer"
+                    >
+                      <span className="font-semibold text-white text-sm">
+                        {lead.first_name} {lead.last_name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{getStatusEmoji(lead.status)}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setMobileMoveLead(lead)
+                        }}
+                        className="px-2 py-1 bg-white/10 hover:bg-white/20 rounded text-xs text-white/70 transition"
+                      >
+                        📤
+                      </button>
+                    </div>
                   </div>
-                  <div className="text-xs text-white/60">
-                    {formationLabels[lead.formation] || lead.formation}
+                  <div
+                    onClick={() => setSelectedLead(lead)}
+                    className="cursor-pointer"
+                  >
+                    <div className="text-xs text-white/60">
+                      {formationLabels[lead.formation] || lead.formation}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -413,6 +476,46 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
           currentUser={currentUser}
           onClose={() => setSelectedLead(null)}
         />
+      )}
+
+      {/* Modal de déplacement mobile */}
+      {mobileMoveLead && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1a1a] rounded-2xl p-6 max-w-sm w-full border border-white/20">
+            <h3 className="text-lg font-semibold text-white mb-4">
+              Déplacer {mobileMoveLead.first_name} {mobileMoveLead.last_name}
+            </h3>
+            <div className="space-y-2">
+              <button
+                onClick={() => handleDrop('nouveau', mobileMoveLead.id)}
+                className="w-full px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 rounded-xl text-white text-sm font-medium transition text-left"
+              >
+                🆕 Nouveau
+              </button>
+              {closers.map((closer) => (
+                <button
+                  key={closer.id}
+                  onClick={() => handleDrop(closer.id, mobileMoveLead.id)}
+                  className="w-full px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-sm font-medium transition text-left"
+                >
+                  👤 {closer.full_name || closer.email}
+                </button>
+              ))}
+              <button
+                onClick={() => handleDrop('ko', mobileMoveLead.id)}
+                className="w-full px-4 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-400/30 rounded-xl text-white text-sm font-medium transition text-left"
+              >
+                ❌ K.O
+              </button>
+            </div>
+            <button
+              onClick={() => setMobileMoveLead(null)}
+              className="w-full mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white text-sm transition"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
       )}
     </>
   )
