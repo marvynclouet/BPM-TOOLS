@@ -33,7 +33,7 @@ export default function FormLogo() {
 
         {/* Instagram */}
         <Link
-          href="https://instagram.com/bpmformation"
+          href="https://instagram.com/bpm.formation"
           target="_blank"
           rel="noopener noreferrer"
           className="text-white/80 hover:text-white text-sm sm:text-base font-medium transition-colors flex items-center gap-2"
