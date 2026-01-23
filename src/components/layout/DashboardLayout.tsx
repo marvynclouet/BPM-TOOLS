@@ -73,7 +73,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
         isNavbarVisible ? 'translate-y-0' : '-translate-y-full'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
-          <div className="flex justify-between items-center h-28 sm:h-36 lg:h-52">
+          <div className="flex justify-between items-center h-20 sm:h-24 lg:h-32">
             {/* Logo à gauche */}
             <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity flex-shrink-0">
               <Image
@@ -81,7 +81,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
                 alt="BPM Tools"
                 width={280}
                 height={93}
-                className="h-20 sm:h-24 lg:h-40 xl:h-48 w-auto"
+                className="h-14 sm:h-16 lg:h-24 xl:h-28 w-auto"
                 priority
               />
             </Link>
