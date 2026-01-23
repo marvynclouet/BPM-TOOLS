@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -21,6 +21,28 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
   const pathname = usePathname()
   const supabase = createClient()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isNavbarVisible, setIsNavbarVisible] = useState(true)
+  const [lastScrollY, setLastScrollY] = useState(0)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+      
+      // Si on scroll vers le bas et qu'on a dépassé 100px, cacher la navbar
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setIsNavbarVisible(false)
+      } 
+      // Si on scroll vers le haut, montrer la navbar
+      else if (currentScrollY < lastScrollY) {
+        setIsNavbarVisible(true)
+      }
+      
+      setLastScrollY(currentScrollY)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [lastScrollY])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -47,7 +69,9 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white">
-      <nav className="border-b border-white/5 backdrop-blur-xl bg-[#1a1a1a]/80 sticky top-0 z-50">
+      <nav className={`border-b border-white/5 backdrop-blur-xl bg-[#1a1a1a]/80 sticky top-0 z-50 transition-transform duration-300 ${
+        isNavbarVisible ? 'translate-y-0' : '-translate-y-full'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
           <div className="flex justify-between items-center h-28 sm:h-36 lg:h-52">
             {/* Logo à gauche */}
