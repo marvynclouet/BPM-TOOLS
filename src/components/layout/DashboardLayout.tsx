@@ -49,7 +49,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
     <div className="min-h-screen bg-[#1a1a1a] text-white">
       <nav className="border-b border-white/5 backdrop-blur-xl bg-[#1a1a1a]/80 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
-          <div className="flex justify-between items-center h-20 sm:h-28">
+          <div className="flex justify-between items-center h-24 sm:h-32 lg:h-40">
             {/* Logo à gauche */}
             <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity flex-shrink-0">
               <Image
@@ -57,7 +57,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
                 alt="BPM Tools"
                 width={280}
                 height={93}
-                className="h-12 sm:h-16 lg:h-24 w-auto"
+                className="h-16 sm:h-20 lg:h-32 xl:h-36 w-auto"
                 priority
               />
             </Link>
