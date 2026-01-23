@@ -81,7 +81,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
                 alt="BPM Tools"
                 width={280}
                 height={93}
-                className="h-18 sm:h-24 lg:h-36 xl:h-40 w-auto"
+                className="h-[72px] sm:h-24 lg:h-36 xl:h-40 w-auto"
                 priority
               />
             </Link>
