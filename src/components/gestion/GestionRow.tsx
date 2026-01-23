@@ -217,16 +217,26 @@ export default function GestionRow({ lead, showWhatsAppGroup = false, showDocume
 
       const data = await response.json()
       
-      // Ouvrir WhatsApp directement
-      window.open(data.whatsappUrl, '_blank')
+      // Sur mobile, utiliser window.location.href pour ouvrir directement WhatsApp
+      // Sur desktop, utiliser window.open
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
       
-      // Recharger la page pour mettre à jour le statut
-      setTimeout(() => {
-        window.location.reload()
-      }, 1000)
+      if (isMobile) {
+        // Sur mobile, rediriger directement vers WhatsApp
+        window.location.href = data.whatsappUrl
+      } else {
+        // Sur desktop, ouvrir dans un nouvel onglet
+        window.open(data.whatsappUrl, '_blank')
+      }
+      
+      // Recharger la page pour mettre à jour le statut (seulement sur desktop)
+      if (!isMobile) {
+        setTimeout(() => {
+          window.location.reload()
+        }, 1000)
+      }
     } catch (error: any) {
       alert(`Erreur: ${error.message}`)
-    } finally {
       setLoading(null)
     }
   }

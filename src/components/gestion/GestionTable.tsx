@@ -263,8 +263,14 @@ export default function GestionTable({ leads, showWhatsAppGroup = false, showDoc
                       })
                       if (response.ok) {
                         const data = await response.json()
-                        window.open(data.whatsappUrl, '_blank')
-                        setTimeout(() => window.location.reload(), 1000)
+                        // Sur mobile, utiliser window.location.href pour ouvrir directement WhatsApp
+                        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+                        if (isMobile) {
+                          window.location.href = data.whatsappUrl
+                        } else {
+                          window.open(data.whatsappUrl, '_blank')
+                          setTimeout(() => window.location.reload(), 1000)
+                        }
                       }
                     } catch (error) {
                       alert('Erreur')
