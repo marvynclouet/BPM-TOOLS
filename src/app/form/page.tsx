@@ -13,9 +13,9 @@ export default function FormPage({
           <Image
             src="/logo-bpm-tools.png"
             alt="BPM Tools"
-            width={320}
-            height={107}
-            className="h-auto w-auto max-w-[280px] sm:max-w-[320px]"
+            width={400}
+            height={133}
+            className="h-auto w-auto max-w-[350px] sm:max-w-[400px]"
             priority
           />
         </div>

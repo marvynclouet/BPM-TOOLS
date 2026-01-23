@@ -22,9 +22,9 @@ export default async function LoginPage() {
             <Image
               src="/logo-bpm-tools.png"
               alt="BPM Tools"
-              width={400}
-              height={133}
-              className="h-auto w-auto max-w-[350px] sm:max-w-[400px]"
+              width={500}
+              height={167}
+              className="h-auto w-auto max-w-[450px] sm:max-w-[500px]"
               priority
             />
           </div>
