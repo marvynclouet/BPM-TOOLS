@@ -14,6 +14,7 @@ export async function createStripePaymentLink(data: PaymentLinkData): Promise<st
     const paymentLink = await stripe.paymentLinks.create({
       line_items: [
         {
+          // @ts-ignore - price_data est valide pour Stripe Payment Links
           price_data: {
             currency: 'eur',
             product_data: {

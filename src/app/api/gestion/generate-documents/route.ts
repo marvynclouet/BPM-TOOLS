@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       
       if (planningEntry.specific_dates && planningEntry.specific_dates.length > 0) {
         // Dates simples pour affichage
-        const dates = planningEntry.specific_dates.slice(0, 4).map(d => {
+        const dates = planningEntry.specific_dates.slice(0, 4).map((d: string) => {
           const date = new Date(d.includes('T') ? d.split('T')[0] : d)
           return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
         })

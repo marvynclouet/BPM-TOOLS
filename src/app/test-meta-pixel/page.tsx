@@ -77,7 +77,7 @@ export default function TestMetaPixelPage() {
   }
 
   const handleTestEvent = () => {
-    if (typeof window !== 'undefined' && window.fbq) {
+    if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
       trackMetaEvent('ManualTest', {
         source: 'test_page',
         timestamp: new Date().toISOString(),
@@ -200,8 +200,8 @@ export default function TestMetaPixelPage() {
             <div className="space-y-2 text-sm font-mono text-white/60">
               <div>
                 <span className="text-white/40">window.fbq existe:</span>{' '}
-                <span className={typeof window !== 'undefined' && window.fbq ? 'text-green-400' : 'text-red-400'}>
-                  {typeof window !== 'undefined' && window.fbq ? 'Oui' : 'Non'}
+                <span className={typeof window !== 'undefined' && typeof window.fbq === 'function' ? 'text-green-400' : 'text-red-400'}>
+                  {typeof window !== 'undefined' && typeof window.fbq === 'function' ? 'Oui' : 'Non'}
                 </span>
               </div>
               <div>

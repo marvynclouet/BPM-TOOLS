@@ -7,7 +7,7 @@ import { fr } from 'date-fns/locale/fr'
 interface DatePickerProps {
   value: string | null
   onChange: (date: string | null) => void
-  formationFormat?: 'mensuelle' | 'semaine' | null
+  formationFormat?: 'mensuelle' | 'semaine' | 'bpm_fast' | null
   formationDay?: string | null
   placeholder?: string
 }
@@ -53,13 +53,13 @@ export default function DatePicker({ value, onChange, formationFormat, formation
             className="fixed inset-0 z-40" 
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute top-full left-0 sm:left-auto right-0 sm:right-auto mt-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-3 sm:p-4 z-50 shadow-2xl w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[320px] max-w-[320px] sm:max-w-none">
+          <div className="absolute top-full left-0 sm:left-auto right-0 sm:right-auto mt-2 bg-[#1a1a1a] backdrop-blur-xl border border-white/20 rounded-xl p-3 sm:p-4 z-50 shadow-2xl w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[320px] max-w-[320px] sm:max-w-none">
             {/* Navigation mois */}
             <div className="flex justify-between items-center mb-3 sm:mb-4">
               <button
                 type="button"
                 onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-white/10 transition text-white text-xs sm:text-sm"
+                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg hover:bg-white/20 transition text-white text-xs sm:text-sm"
               >
                 ←
               </button>
@@ -69,7 +69,7 @@ export default function DatePicker({ value, onChange, formationFormat, formation
               <button
                 type="button"
                 onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-white/10 transition text-white text-xs sm:text-sm"
+                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg hover:bg-white/20 transition text-white text-xs sm:text-sm"
               >
                 →
               </button>
@@ -104,7 +104,7 @@ export default function DatePicker({ value, onChange, formationFormat, formation
                         ? 'bg-white text-black font-bold shadow-lg'
                         : isToday
                         ? 'bg-blue-500/30 text-blue-300 border border-blue-400/30'
-                        : 'bg-white/5 text-white/80 hover:bg-white/10 hover:text-white'
+                        : 'bg-white/10 text-white/90 hover:bg-white/20 hover:text-white'
                     }`}
                   >
                     {format(day, 'd')}

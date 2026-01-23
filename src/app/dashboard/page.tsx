@@ -82,10 +82,10 @@ export default async function DashboardPage() {
           .order('created_at', { ascending: true }),
       ])
 
-      leads24h = leads24hResult
-      leads7d = leads7dResult
-      leadsAppeles = leadsAppelesResult
-      leadsPayes = leadsPayesResult
+      leads24h = { count: leads24hResult.count || 0 }
+      leads7d = { count: leads7dResult.count || 0 }
+      leadsAppeles = { count: leadsAppelesResult.count || 0 }
+      leadsPayes = { count: leadsPayesResult.count || 0 }
       recentLeads = recentLeadsResult.data || []
       planningEntries = planningResult.data || []
       allLeadsForChart = allLeadsResult.data || []

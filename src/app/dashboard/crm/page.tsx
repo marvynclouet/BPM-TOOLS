@@ -40,6 +40,7 @@ export default async function CRMPage() {
     .from('leads')
     .select('closer_id, users:closer_id(id, full_name, email)')
     .not('closer_id', 'is', null)
+    .returns<Array<{ closer_id: string; users: { id: string; full_name: string | null; email: string } | null }>>()
 
   // Créer un Set pour éviter les doublons
   const closersMap = new Map<string, { id: string; full_name: string | null; email: string }>()
@@ -51,7 +52,7 @@ export default async function CRMPage() {
   
   // Ajouter tous les utilisateurs qui ont des leads assignés
   closersWithLeads?.forEach(lead => {
-    if (lead.closer_id && lead.users) {
+    if (lead.closer_id && lead.users && !Array.isArray(lead.users)) {
       closersMap.set(lead.closer_id, {
         id: lead.users.id,
         full_name: lead.users.full_name,

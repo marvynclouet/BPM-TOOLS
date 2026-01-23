@@ -62,7 +62,9 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
     }
   }
 
-  return (
+  if (!mounted) return null
+
+  const modalContent = (
     <div className="fixed inset-0 bg-black z-[9999]" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
       <div className="w-full h-full bg-[#1a1a1a] flex flex-col">
         {/* En-tête */}
@@ -191,8 +193,6 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
       </div>
     </div>
   )
-
-  if (!mounted) return null
 
   return createPortal(modalContent, document.body)
 }

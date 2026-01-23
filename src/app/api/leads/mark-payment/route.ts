@@ -179,11 +179,11 @@ export async function POST(request: NextRequest) {
                 }
               }
               
-              console.log(`Dates trouvées pour ${lead.formation_day}:`, datesArray.map(d => d.toISOString().split('T')[0]))
+              console.log(`Dates trouvées pour ${lead.formation_day}:`, datesArray.map((d: Date) => d.toISOString().split('T')[0]))
               
               // Prendre les 4 premiers et les convertir en format ISO (YYYY-MM-DD)
               if (datesArray.length >= 4) {
-                specificDates = datesArray.slice(0, 4).map(d => {
+                specificDates = datesArray.slice(0, 4).map((d: Date) => {
                   const year = d.getFullYear()
                   const month = String(d.getMonth() + 1).padStart(2, '0')
                   const day = String(d.getDate()).padStart(2, '0')

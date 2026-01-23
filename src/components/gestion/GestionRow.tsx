@@ -19,6 +19,7 @@ interface ClosedLead {
   phone: string
   email: string | null
   formation: string
+  status: string
   price_fixed: number | null
   price_deposit: number | null
   formation_format: string | null

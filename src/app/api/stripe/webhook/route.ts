@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2024-11-20.acacia' as any,
 })
 
 export async function POST(request: NextRequest) {
@@ -44,10 +44,8 @@ export async function POST(request: NextRequest) {
       paymentIntentId = session.id
       amount = (session as Stripe.PaymentIntent).amount / 100
       currency = (session as Stripe.PaymentIntent).currency
-      customerId =
-        typeof (session as Stripe.PaymentIntent).customer === 'string'
-          ? (session as Stripe.PaymentIntent).customer
-          : null
+      const customer = (session as Stripe.PaymentIntent).customer
+      customerId = typeof customer === 'string' ? customer : customer?.id || null
     } else {
       console.error('Unable to extract payment info from event')
       return NextResponse.json({ error: 'Invalid event data' }, { status: 400 })

@@ -70,16 +70,16 @@ async function getLogoBase64(): Promise<string | null> {
 function addHeader(doc: jsPDF, title: string) {
   // Titre principal centré
   doc.setFontSize(18)
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text(title, 105, 35, { align: 'center' })
   
   // Nom de l'organisme
   doc.setFontSize(12)
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   doc.text('BPM Formation', 105, 42, { align: 'center' })
   
   // Ligne de séparation sous le titre
-  doc.setDrawColor(...COLORS.primary)
+  doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2])
   doc.setLineWidth(0.5)
   doc.line(20, 48, 190, 48)
 }
@@ -113,16 +113,16 @@ function addFooter(doc: jsPDF, pageNumber: number) {
   const pageWidth = doc.internal.pageSize.width
   
   // Ligne de séparation
-  doc.setDrawColor(...COLORS.secondary)
+  doc.setDrawColor(COLORS.secondary[0], COLORS.secondary[1], COLORS.secondary[2])
   doc.setLineWidth(0.3)
   doc.line(20, pageHeight - 20, pageWidth - 20, pageHeight - 20)
   
   // Informations de contact
   doc.setFontSize(8)
-  doc.setTextColor(...COLORS.secondary)
+  doc.setTextColor(COLORS.secondary[0], COLORS.secondary[1], COLORS.secondary[2])
   doc.text('BPM Formation - Formation professionnelle', 105, pageHeight - 15, { align: 'center' })
   doc.text(`Page ${pageNumber}`, 190, pageHeight - 15, { align: 'right' })
-  doc.setTextColor(...COLORS.primary)
+  doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2])
 }
 
 interface ConvocationData {
@@ -156,11 +156,11 @@ export async function generateConvocationPDF(data: ConvocationData): Promise<Buf
   
   // Section "À l'attention de"
   doc.setFontSize(11)
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text("À l'attention de :", 20, yPos)
   yPos += 8
   
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
   doc.text(`${data.firstName} ${data.lastName}`, 25, yPos)
   yPos += 6
@@ -174,12 +174,12 @@ export async function generateConvocationPDF(data: ConvocationData): Promise<Buf
   }
   
   // Section "Objet"
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text('Objet : Convocation à la formation', 20, yPos)
   yPos += 10
   
   // Corps du document
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
   const formationLabels: Record<string, string> = {
     inge_son: 'Ingénieur du son',
@@ -190,11 +190,11 @@ export async function generateConvocationPDF(data: ConvocationData): Promise<Buf
   
   doc.text(`Nous avons le plaisir de vous confirmer votre inscription à la formation`, 20, yPos)
   yPos += 6
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text(`"${formationLabel}"`, 20, yPos)
   yPos += 8
   
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   doc.text('Détails de la formation :', 20, yPos)
   yPos += 6
   
@@ -206,11 +206,11 @@ export async function generateConvocationPDF(data: ConvocationData): Promise<Buf
   yPos += 10
   
   // Instructions
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text('Merci de bien vouloir :', 20, yPos)
   yPos += 6
   
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   doc.text('• Vous présenter 15 minutes avant le début de la formation', 25, yPos)
   yPos += 6
   doc.text('• Apporter une pièce d\'identité', 25, yPos)
@@ -232,12 +232,12 @@ export async function generateConvocationPDF(data: ConvocationData): Promise<Buf
   doc.setFontSize(10)
   doc.text('Signature et cachet :', 20, yPos)
   yPos += 15
-  doc.setDrawColor(...COLORS.primary)
+  doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2])
   doc.setLineWidth(0.5)
   doc.line(20, yPos, 100, yPos)
   yPos += 5
   doc.setFontSize(8)
-  doc.setTextColor(...COLORS.secondary)
+  doc.setTextColor(COLORS.secondary[0], COLORS.secondary[1], COLORS.secondary[2])
   doc.text('Le responsable de la formation', 20, yPos)
   
   // Pied de page
@@ -258,11 +258,11 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
   
   // Informations client (à gauche)
   doc.setFontSize(10)
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text('Facturé à :', 20, yPos)
   yPos += 6
   
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   doc.text(`${data.firstName} ${data.lastName}`, 20, yPos)
   yPos += 6
   if (data.phone) {
@@ -280,17 +280,17 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
     month: 'long', 
     year: 'numeric' 
   })
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text(`Date : ${dateStr}`, 150, 60, { align: 'right' })
   
   yPos += 10
   
   // Tableau des prestations
-  doc.setDrawColor(...COLORS.primary)
+  doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2])
   doc.setLineWidth(0.5)
   
   // En-tête du tableau
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.setFontSize(10)
   doc.rect(20, yPos, 170, 8)
   doc.text('Désignation', 25, yPos + 5.5)
@@ -301,7 +301,7 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
   yPos += 8
   
   // Ligne de prestation
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   const formationLabels: Record<string, string> = {
     inge_son: 'Formation Ingénieur du son',
     beatmaking: 'Formation Beatmaking',
@@ -330,13 +330,13 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
   }
   
   // Total
-  doc.setDrawColor(...COLORS.primary)
+  doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2])
   doc.setLineWidth(0.8)
   doc.line(120, yPos, 190, yPos)
   yPos += 6
   
   doc.setFontSize(12)
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text('TOTAL TTC :', 120, yPos)
   doc.text(`${data.amount.toFixed(2)} €`, 190, yPos, { align: 'right' })
   
@@ -344,8 +344,8 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
   
   // Conditions de paiement
   doc.setFontSize(9)
-  doc.setFont(undefined, 'normal')
-  doc.setTextColor(...COLORS.secondary)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(COLORS.secondary[0], COLORS.secondary[1], COLORS.secondary[2])
   doc.text('Conditions de paiement :', 20, yPos)
   yPos += 5
   doc.text('Paiement par virement bancaire ou lien Stripe fourni', 25, yPos)
@@ -379,13 +379,13 @@ export async function generateAttestationPDF(data: AttestationData): Promise<Buf
   
   // Titre principal
   doc.setFontSize(14)
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text('ATTESTATION D\'INSCRIPTION À UNE FORMATION PROFESSIONNELLE', 105, yPos, { align: 'center' })
   yPos += 15
   
   // Informations du représentant légal
   doc.setFontSize(11)
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   const representativeName = data.representativeName || 'Marvyn Clouet'
   doc.text(`Je soussigné ${representativeName}, représentant légal de BPM Formation`, 20, yPos)
   yPos += 8
@@ -402,19 +402,19 @@ export async function generateAttestationPDF(data: AttestationData): Promise<Buf
   yPos += 10
   
   // "Atteste que :"
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text('Atteste que :', 20, yPos)
   yPos += 8
   
   // Nom de l'élève en gras
   doc.setFontSize(12)
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text(`${data.firstName.toUpperCase()} ${data.lastName.toUpperCase()}`, 20, yPos)
   yPos += 10
   
   // "est inscrite à la formation professionnelle suivante :"
   doc.setFontSize(11)
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   doc.text('est inscrite à la formation professionnelle suivante :', 20, yPos)
   yPos += 10
   
@@ -456,11 +456,11 @@ export async function generateAttestationPDF(data: AttestationData): Promise<Buf
   yPos += 10
   
   // Objectifs pédagogiques
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text('Objectifs pédagogiques :', 20, yPos)
   yPos += 7
   
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   doc.text('Acquisition des compétences en enregistrement, mixage, mastering et beatmaking, en vue', 20, yPos, { maxWidth: 170 })
   yPos += 6
   doc.text('de développer une autonomie professionnelle dans le domaine de l\'ingénierie sonore.', 20, yPos, { maxWidth: 170 })

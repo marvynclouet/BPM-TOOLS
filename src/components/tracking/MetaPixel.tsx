@@ -15,10 +15,14 @@ export default function MetaPixel({ pixelId }: MetaPixelProps) {
 
     // Initialiser le pixel Meta si pas déjà fait
     if (!window.fbq) {
-      window.fbq = function() {
+      const fbqFunction = function() {
         // eslint-disable-next-line prefer-rest-params
-        window.fbq.callMethod ? window.fbq.callMethod.apply(window.fbq, arguments) : window.fbq.queue.push(arguments)
-      }
+        const fbq = window.fbq as any
+        fbq.callMethod ? fbq.callMethod.apply(fbq, arguments) : fbq.queue.push(arguments)
+      } as any
+      fbqFunction.queue = []
+      fbqFunction.loaded = false
+      window.fbq = fbqFunction
       window.fbq.push = window.fbq
       window.fbq.loaded = true
       window.fbq.version = '2.0'

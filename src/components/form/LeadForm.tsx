@@ -66,6 +66,7 @@ export default function LeadForm({ source }: LeadFormProps) {
         phone: '',
         email: '',
         formation: 'inge_son',
+        source: source || 'direct',
       })
     } catch (err: any) {
       setError(err.message || 'Erreur lors de l\'enregistrement')

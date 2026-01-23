@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       
       if (planningEntry.specific_dates && planningEntry.specific_dates.length > 0) {
         // Dates simples pour affichage
-        const dates = planningEntry.specific_dates.slice(0, 4).map(d => {
+        const dates = planningEntry.specific_dates.slice(0, 4).map((d: string) => {
           const date = new Date(d.includes('T') ? d.split('T')[0] : d)
           return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
         })
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       }
       
       if (planningEntry.specific_dates && planningEntry.specific_dates.length > 0) {
-        const dates = planningEntry.specific_dates.slice(0, 4).map(d => {
+        const dates = planningEntry.specific_dates.slice(0, 4).map((d: string) => {
           const date = new Date(d.includes('T') ? d.split('T')[0] : d)
           return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
         })
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     // Pour l'instant, on retourne l'attestation (document principal)
     // TODO: Utiliser pdf-lib pour combiner les trois PDFs si nécessaire
-    return new NextResponse(attestationPDF, {
+    return new NextResponse(attestationPDF as any, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="attestation-${lead.first_name}-${lead.last_name}.pdf"`,

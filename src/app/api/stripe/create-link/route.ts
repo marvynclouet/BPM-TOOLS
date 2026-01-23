@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/auth'
 import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2024-11-20.acacia' as any,
 })
 
 export async function POST(request: NextRequest) {
@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
   const paymentLink = await stripe.paymentLinks.create({
     line_items: [
       {
+        // @ts-ignore - price_data est valide pour Stripe Payment Links
         price_data: {
           currency: 'eur',
           product_data: {
