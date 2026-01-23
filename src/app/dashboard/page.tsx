@@ -209,10 +209,10 @@ export default async function DashboardPage() {
         : 0
 
     return (
-      <div className="space-y-4 animate-fade-in pb-6">
+      <div className="space-y-3 sm:space-y-4 animate-fade-in pb-4 sm:pb-6">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-white/50 text-sm">Vue d&apos;ensemble de l&apos;activité</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-white/50 text-xs sm:text-sm">Vue d&apos;ensemble de l&apos;activité</p>
         </div>
 
         {/* KPIs avec animations */}
@@ -328,13 +328,13 @@ function KPICard({
   }
 
   return (
-    <div className={`apple-card apple-card-hover rounded-xl p-4 ${colorClasses[color]}`}>
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="text-xs font-medium text-white/60 tracking-wide uppercase">{title}</h3>
-        {icon && <span className={`text-xl ${iconColors[color]}`}>{icon}</span>}
+    <div className={`apple-card apple-card-hover rounded-xl p-3 sm:p-4 ${colorClasses[color]}`}>
+      <div className="flex items-start justify-between mb-2 sm:mb-3">
+        <h3 className="text-[10px] sm:text-xs font-medium text-white/60 tracking-wide uppercase truncate flex-1 pr-2">{title}</h3>
+        {icon && <span className={`text-lg sm:text-xl flex-shrink-0 ${iconColors[color]}`}>{icon}</span>}
       </div>
-      <p className="text-3xl font-semibold mb-1 text-white tracking-tight animate-count-up">{value}</p>
-      {subtitle && <p className="text-xs text-white/40 font-light">{subtitle}</p>}
+      <p className="text-2xl sm:text-3xl font-semibold mb-1 text-white tracking-tight animate-count-up">{value}</p>
+      {subtitle && <p className="text-[10px] sm:text-xs text-white/40 font-light">{subtitle}</p>}
     </div>
   )
 }
@@ -353,13 +353,13 @@ function QuickAccessCard({
   return (
     <Link
       href={href}
-      className="block apple-card apple-card-hover rounded-xl p-4 group"
+      className="block apple-card apple-card-hover rounded-xl p-3 sm:p-4 group"
     >
       <div className="flex items-center gap-2 mb-2">
-        {icon && <span className="text-2xl group-hover:scale-110 transition-transform duration-300">{icon}</span>}
-        <h3 className="text-lg font-semibold tracking-tight">{title}</h3>
+        {icon && <span className="text-xl sm:text-2xl group-hover:scale-110 transition-transform duration-300">{icon}</span>}
+        <h3 className="text-base sm:text-lg font-semibold tracking-tight">{title}</h3>
       </div>
-      <p className="text-xs text-white/50 font-light leading-relaxed">{description}</p>
+      <p className="text-[10px] sm:text-xs text-white/50 font-light leading-relaxed">{description}</p>
     </Link>
   )
 }

@@ -93,22 +93,22 @@ export default async function GestionPage() {
   }
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8 pb-8 sm:pb-12">
       <AutoRelanceChecker />
-      <div className="space-y-2">
-        <h1 className="text-4xl font-semibold tracking-tight">Gestion</h1>
-        <p className="text-white/50 text-lg">Gestion des leads chauds et élèves closés</p>
+      <div className="space-y-1 sm:space-y-2">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight">Gestion</h1>
+        <p className="text-white/50 text-sm sm:text-base lg:text-lg">Gestion des leads chauds et élèves closés</p>
       </div>
 
       {/* Section 1 : Leads chauds (pour ouvrir conversations WhatsApp) */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-semibold tracking-tight">🔥 Leads chauds</h2>
-          <span className="px-3 py-1 bg-red-500/20 text-red-300 rounded-full text-sm font-medium">
+      <div className="space-y-3 sm:space-y-4">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">🔥 Leads chauds</h2>
+          <span className="px-2 sm:px-3 py-1 bg-red-500/20 text-red-300 rounded-full text-xs sm:text-sm font-medium">
             {hotLeadsWithPlanning.length}
           </span>
         </div>
-        <p className="text-white/50 text-sm">Leads chauds, en cours de closing et acompte en cours - Ouvrez des conversations WhatsApp</p>
+        <p className="text-white/50 text-xs sm:text-sm">Leads chauds, en cours de closing et acompte en cours - Ouvrez des conversations WhatsApp</p>
         <GestionTable 
           leads={hotLeadsWithPlanning} 
           showWhatsAppGroup={true}
@@ -117,14 +117,14 @@ export default async function GestionPage() {
       </div>
 
       {/* Section 2 : Leads closés (pour générer documents) */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-semibold tracking-tight">✅ Leads closés</h2>
-          <span className="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm font-medium">
+      <div className="space-y-3 sm:space-y-4">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">✅ Leads closés</h2>
+          <span className="px-2 sm:px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-xs sm:text-sm font-medium">
             {closedLeadsWithPlanning.length}
           </span>
         </div>
-        <p className="text-white/50 text-sm">Générer et envoyer les documents (attestation et facture)</p>
+        <p className="text-white/50 text-xs sm:text-sm">Générer et envoyer les documents (attestation et facture)</p>
         <GestionTable 
           leads={closedLeadsWithPlanning} 
           showWhatsAppGroup={false}

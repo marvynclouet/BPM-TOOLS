@@ -87,15 +87,15 @@ export default function LeadForm({ source }: LeadFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-5 py-4 rounded-xl text-sm font-medium">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-sm font-medium">
           {error}
         </div>
       )}
 
       <div>
-        <label htmlFor="first_name" className="block text-sm font-medium mb-2 text-white/70">
+        <label htmlFor="first_name" className="block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 text-white/70">
           Prénom *
         </label>
         <input
@@ -104,13 +104,13 @@ export default function LeadForm({ source }: LeadFormProps) {
           value={formData.first_name}
           onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
           required
-          className="w-full px-5 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all text-base"
+          className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-white/10 border border-white/20 rounded-xl text-sm sm:text-base text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
           placeholder="Votre prénom"
         />
       </div>
 
       <div>
-        <label htmlFor="last_name" className="block text-sm font-medium mb-2 text-white/70">
+        <label htmlFor="last_name" className="block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 text-white/70">
           Nom *
         </label>
         <input
@@ -119,13 +119,13 @@ export default function LeadForm({ source }: LeadFormProps) {
           value={formData.last_name}
           onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
           required
-          className="w-full px-5 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all text-base"
+          className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-white/10 border border-white/20 rounded-xl text-sm sm:text-base text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
           placeholder="Votre nom"
         />
       </div>
 
       <div>
-        <label htmlFor="phone" className="block text-sm font-medium mb-2 text-white/70">
+        <label htmlFor="phone" className="block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 text-white/70">
           Téléphone *
         </label>
         <input
@@ -134,13 +134,13 @@ export default function LeadForm({ source }: LeadFormProps) {
           value={formData.phone}
           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
           required
-          className="w-full px-5 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all text-base"
+          className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-white/10 border border-white/20 rounded-xl text-sm sm:text-base text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
           placeholder="06 12 34 56 78"
         />
       </div>
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium mb-2 text-white/70">
+        <label htmlFor="email" className="block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 text-white/70">
           Email
         </label>
         <input
@@ -148,13 +148,13 @@ export default function LeadForm({ source }: LeadFormProps) {
           type="email"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          className="w-full px-5 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all text-base"
+          className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-white/10 border border-white/20 rounded-xl text-sm sm:text-base text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
           placeholder="votre.email@example.com (optionnel)"
         />
       </div>
 
       <div>
-        <label htmlFor="formation" className="block text-sm font-medium mb-2 text-white/70">
+        <label htmlFor="formation" className="block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 text-white/70">
           Formation *
         </label>
         <select
@@ -164,7 +164,7 @@ export default function LeadForm({ source }: LeadFormProps) {
             setFormData({ ...formData, formation: e.target.value as any })
           }
           required
-          className="w-full px-5 py-4 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/20 transition-all text-base"
+          className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-white/10 border border-white/20 rounded-xl text-sm sm:text-base text-white focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
         >
           <option value="inge_son">Ingénieur du son</option>
           <option value="beatmaking">Beatmaking</option>
@@ -173,7 +173,7 @@ export default function LeadForm({ source }: LeadFormProps) {
       </div>
 
       <div>
-        <label htmlFor="source" className="block text-sm font-medium mb-2 text-white/70">
+        <label htmlFor="source" className="block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 text-white/70">
           Comment avez-vous connu BPM Formation ?
         </label>
         <select
@@ -182,7 +182,7 @@ export default function LeadForm({ source }: LeadFormProps) {
           onChange={(e) =>
             setFormData({ ...formData, source: e.target.value })
           }
-          className="w-full px-5 py-4 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/20 transition-all text-base"
+          className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-white/10 border border-white/20 rounded-xl text-sm sm:text-base text-white focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
         >
           <option value="direct">Direct / Bouche à oreille</option>
           <option value="instagram">📷 Instagram</option>
@@ -197,7 +197,7 @@ export default function LeadForm({ source }: LeadFormProps) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-white text-black py-4 rounded-xl font-semibold hover:bg-white/90 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-base"
+        className="w-full bg-white text-black py-3 sm:py-4 rounded-xl font-semibold hover:bg-white/90 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
       >
         {loading ? 'Envoi...' : "S'inscrire"}
       </button>

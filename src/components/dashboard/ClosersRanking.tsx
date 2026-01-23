@@ -60,12 +60,12 @@ export default function ClosersRanking({ closersStats, period }: ClosersRankingP
   }
 
   return (
-    <div className="apple-card rounded-xl p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">
+    <div className="apple-card rounded-xl p-4 sm:p-6">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h2 className="text-lg sm:text-xl font-semibold">
           {period === 'month' ? '🏆 Classement du mois' : '🏆 Classement général'}
         </h2>
-        <span className="text-xs text-white/40">
+        <span className="text-[10px] sm:text-xs text-white/40">
           {format(new Date(), 'MMMM yyyy', { locale: fr })}
         </span>
       </div>

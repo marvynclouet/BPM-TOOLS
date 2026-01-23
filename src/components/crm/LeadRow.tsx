@@ -360,8 +360,8 @@ export default function LeadRow({ lead, currentUser }: LeadRowProps) {
           currentUserName={currentUser?.full_name || currentUser?.email || null}
         />
       )}
-      <tr className={`transition-colors ${rowBgColors[lead.status] || 'hover:bg-white/5'}`}>
-        <td className="px-3 py-3">
+      <tr data-lead-id={lead.id} className={`transition-colors ${rowBgColors[lead.status] || 'hover:bg-white/5'}`}>
+        <td className="px-2 sm:px-3 py-2 sm:py-3">
           <div className="space-y-0.5">
             {editingField === 'first_name' ? (
               <input

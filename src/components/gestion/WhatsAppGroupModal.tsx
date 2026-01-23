@@ -66,34 +66,34 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
     <div className="fixed inset-0 bg-black z-[9999]" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
       <div className="w-full h-full bg-[#1a1a1a] flex flex-col">
         {/* En-tête */}
-        <div className="flex justify-between items-center p-6 border-b border-white/20 flex-shrink-0 bg-[#1a1a1a]">
-          <h2 className="text-3xl font-bold text-white pr-4">💬 Conversation WhatsApp</h2>
+        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-white/20 flex-shrink-0 bg-[#1a1a1a]">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white pr-2 sm:pr-4 truncate">💬 Conversation WhatsApp</h2>
           <button
             onClick={onClose}
-            className="text-white hover:text-white text-4xl flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/20 transition font-light"
+            className="text-white hover:text-white text-3xl sm:text-4xl flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full hover:bg-white/20 transition font-light"
           >
             ×
           </button>
         </div>
 
         {/* Contenu scrollable */}
-        <div className="overflow-y-auto flex-1 p-8 min-h-0 bg-[#1a1a1a]">
+        <div className="overflow-y-auto flex-1 p-4 sm:p-6 lg:p-8 min-h-0 bg-[#1a1a1a]">
           {step === 'instructions' && (
-            <div className="space-y-4">
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-                <p className="text-sm text-blue-300 font-medium mb-2">Élève concerné :</p>
-                <p className="text-white font-semibold">{lead.first_name} {lead.last_name}</p>
-                <p className="text-white/60 text-sm">{lead.phone}</p>
+            <div className="space-y-3 sm:space-y-4 max-w-2xl mx-auto w-full">
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 sm:p-4">
+                <p className="text-xs sm:text-sm text-blue-300 font-medium mb-1.5 sm:mb-2">Élève concerné :</p>
+                <p className="text-white text-sm sm:text-base font-semibold">{lead.first_name} {lead.last_name}</p>
+                <p className="text-white/60 text-xs sm:text-sm">{lead.phone}</p>
               </div>
 
-              <div className="space-y-3">
-                <p className="text-white/70 text-sm">
+              <div className="space-y-2 sm:space-y-3">
+                <p className="text-white/70 text-xs sm:text-sm">
                   Une conversation WhatsApp sera ouverte avec un message de résumé incluant :
                 </p>
-                <p className="text-white/50 text-xs mt-2">
+                <p className="text-white/50 text-[10px] sm:text-xs mt-2">
                   💡 Le message sera pré-rempli dans WhatsApp, il suffit de cliquer sur &quot;Envoyer&quot;.
                 </p>
-                <ul className="list-disc list-inside space-y-2 text-white/60 text-sm ml-2">
+                <ul className="list-disc list-inside space-y-1.5 sm:space-y-2 text-white/60 text-xs sm:text-sm ml-2">
                   <li>Les informations de la formation</li>
                   <li>Les dates de formation</li>
                   <li>Le prix et l&apos;acompte</li>
@@ -105,11 +105,11 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
           )}
 
           {step === 'creating' && (
-            <div className="flex flex-col items-center justify-center py-20">
-              <div className="animate-pulse-soft mb-6">
-                <span className="text-8xl">💬</span>
+            <div className="flex flex-col items-center justify-center py-12 sm:py-20">
+              <div className="animate-pulse-soft mb-4 sm:mb-6">
+                <span className="text-6xl sm:text-8xl">💬</span>
               </div>
-              <p className="text-white text-xl font-medium text-center">Préparation de la conversation WhatsApp...</p>
+              <p className="text-white text-base sm:text-lg lg:text-xl font-medium text-center px-4">Préparation de la conversation WhatsApp...</p>
             </div>
           )}
 
@@ -158,11 +158,11 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
 
         {/* Footer */}
         {step !== 'success' && (
-          <div className="flex justify-end gap-4 p-8 border-t-2 border-white/20 flex-shrink-0 bg-[#1a1a1a]">
+          <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 p-4 sm:p-6 lg:p-8 border-t-2 border-white/20 flex-shrink-0 bg-[#1a1a1a]">
             <button
               onClick={onClose}
               disabled={loading}
-              className="px-8 py-3 bg-white/10 border-2 border-white/20 rounded-xl text-white text-base font-semibold hover:bg-white/20 transition disabled:opacity-50"
+              className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-white/10 border-2 border-white/20 rounded-xl text-white text-sm sm:text-base font-semibold hover:bg-white/20 transition disabled:opacity-50"
             >
               Annuler
             </button>
@@ -170,7 +170,7 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
               <button
                 onClick={handleCreateGroup}
                 disabled={loading}
-                className="px-8 py-3 bg-green-500 text-white rounded-xl text-base font-bold hover:bg-green-600 transition disabled:opacity-50 shadow-lg"
+                className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-green-500 text-white rounded-xl text-sm sm:text-base font-bold hover:bg-green-600 transition disabled:opacity-50 shadow-lg"
               >
                 Préparer la conversation
               </button>
@@ -179,10 +179,10 @@ export default function WhatsAppGroupModal({ lead, onClose, onSuccess }: WhatsAp
         )}
 
         {step === 'success' && (
-          <div className="flex justify-end gap-4 p-8 border-t-2 border-white/20 flex-shrink-0 bg-[#1a1a1a]">
+          <div className="flex justify-end gap-3 sm:gap-4 p-4 sm:p-6 lg:p-8 border-t-2 border-white/20 flex-shrink-0 bg-[#1a1a1a]">
             <button
               onClick={onClose}
-              className="px-8 py-3 bg-white text-black rounded-xl text-base font-bold hover:bg-white/90 transition shadow-lg"
+              className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-white text-black rounded-xl text-sm sm:text-base font-bold hover:bg-white/90 transition shadow-lg"
             >
               Fermer
             </button>

@@ -48,48 +48,48 @@ export default function PlanningEntryModal({ entries, date, onClose }: PlanningE
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-3 sm:p-4" onClick={onClose}>
       <div 
-        className="bg-white/10 border border-white/20 rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto"
+        className="bg-white/10 border border-white/20 rounded-lg p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-white">
+        <div className="flex justify-between items-center mb-3 sm:mb-4">
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-white pr-2 truncate">
             📅 {format(date, 'EEEE d MMMM yyyy', { locale: fr })}
           </h2>
           <button
             onClick={onClose}
-            className="text-white/70 hover:text-white text-2xl"
+            className="text-white/70 hover:text-white text-2xl sm:text-3xl flex-shrink-0"
           >
             ×
           </button>
         </div>
 
         {entries.length === 0 ? (
-          <p className="text-white/50 text-center py-8">Aucune formation planifiée ce jour</p>
+          <p className="text-white/50 text-center py-6 sm:py-8 text-sm sm:text-base">Aucune formation planifiée ce jour</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {entries.map((entry) => (
               <div
                 key={entry.id}
-                className="bg-white/5 border border-white/10 rounded-lg p-4"
+                className="bg-white/5 border border-white/10 rounded-lg p-3 sm:p-4"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">
+                <div className="flex items-start justify-between mb-2 sm:mb-3">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <h3 className="text-base sm:text-lg font-semibold text-white mb-1 truncate">
                       {entry.leads?.first_name} {entry.leads?.last_name}
                     </h3>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded text-sm font-medium">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2">
+                      <span className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded text-xs sm:text-sm font-medium">
                         {entry.leads?.formation ? formationLabels[entry.leads.formation] : 'Formation'}
                       </span>
                       {entry.leads?.formation_format && (
-                        <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs">
+                        <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-[10px] sm:text-xs">
                           {formatLabels[entry.leads.formation_format]}
                         </span>
                       )}
                       {entry.leads?.formation_day && (
-                        <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded text-xs">
+                        <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded text-[10px] sm:text-xs">
                           {dayLabels[entry.leads.formation_day]}
                         </span>
                       )}
@@ -97,20 +97,20 @@ export default function PlanningEntryModal({ entries, date, onClose }: PlanningE
                   </div>
                 </div>
 
-                <div className="space-y-2 text-sm text-white/70">
+                <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-white/70">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">📞</span>
-                    <span>{entry.leads?.phone}</span>
+                    <span className="font-medium flex-shrink-0">📞</span>
+                    <span className="truncate">{entry.leads?.phone}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">📅</span>
-                    <span>
+                  <div className="flex items-start gap-2">
+                    <span className="font-medium flex-shrink-0">📅</span>
+                    <span className="break-words">
                       Du {format(new Date(entry.start_date), 'dd MMM yyyy à HH:mm', { locale: fr })}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">⏰</span>
-                    <span>
+                  <div className="flex items-start gap-2">
+                    <span className="font-medium flex-shrink-0">⏰</span>
+                    <span className="break-words">
                       Au {format(new Date(entry.end_date), 'dd MMM yyyy à HH:mm', { locale: fr })}
                     </span>
                   </div>

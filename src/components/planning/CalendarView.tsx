@@ -111,26 +111,26 @@ export default function CalendarView({ entries }: CalendarViewProps) {
   return (
     <div className="space-y-4">
       {/* Navigation */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-2">
         <button
           onClick={previousMonth}
-          className="px-4 py-2 bg-white/10 border border-white/20 rounded hover:bg-white/20 transition"
+          className="px-3 sm:px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition text-xs sm:text-sm"
         >
-          ← Mois précédent
+          ← <span className="hidden sm:inline">Mois précédent</span><span className="sm:hidden">Préc.</span>
         </button>
-        <h2 className="text-2xl font-bold">
+        <h2 className="text-lg sm:text-2xl font-bold text-center flex-1">
           {format(currentDate, 'MMMM yyyy', { locale: fr })}
         </h2>
         <button
           onClick={nextMonth}
-          className="px-4 py-2 bg-white/10 border border-white/20 rounded hover:bg-white/20 transition"
+          className="px-3 sm:px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition text-xs sm:text-sm"
         >
-          Mois suivant →
+          <span className="hidden sm:inline">Mois suivant</span><span className="sm:hidden">Suiv.</span> →
         </button>
       </div>
 
-      {/* Calendrier */}
-      <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden">
+      {/* Calendrier Desktop */}
+      <div className="hidden lg:block bg-white/5 border border-white/10 rounded-lg overflow-hidden">
         {/* En-têtes des jours */}
         <div className="grid grid-cols-7 border-b border-white/10">
           {weekDays.map(day => (
@@ -191,6 +191,64 @@ export default function CalendarView({ entries }: CalendarViewProps) {
             <div key={`after-${index}`} className="min-h-[100px] border-r border-b border-white/10 bg-white/2" />
           ))}
         </div>
+      </div>
+
+      {/* Vue mobile - Liste */}
+      <div className="lg:hidden space-y-3">
+        {daysInMonth.map(day => {
+          const dayEntries = getEntriesForDay(day)
+          const isToday = isSameDay(day, new Date())
+          if (dayEntries.length === 0) return null
+
+          return (
+            <div
+              key={day.toISOString()}
+              className={`apple-card rounded-xl p-4 ${
+                isToday ? 'border-2 border-blue-500/30' : ''
+              }`}
+            >
+              <div className="flex justify-between items-center mb-3">
+                <h3 className={`text-base font-semibold ${isToday ? 'text-blue-300' : 'text-white'}`}>
+                  {format(day, 'EEEE d MMMM yyyy', { locale: fr })}
+                </h3>
+                {isToday && (
+                  <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs font-medium">
+                    Aujourd'hui
+                  </span>
+                )}
+              </div>
+              <div className="space-y-2">
+                {dayEntries.map(entry => (
+                  <button
+                    key={entry.id}
+                    onClick={() => {
+                      setSelectedDate(day)
+                      setSelectedEntries(dayEntries)
+                    }}
+                    className={`w-full text-left rounded-lg px-3 py-2 transition ${getFormatColors(entry.leads?.formation_format || null)}`}
+                  >
+                    <div className="font-medium text-sm">
+                      {entry.leads?.formation_format ? formatLabels[entry.leads.formation_format] : '📅'}
+                    </div>
+                    <div className={`${getFormatTextColor(entry.leads?.formation_format || null)} text-xs mt-1`}>
+                      {entry.leads?.formation ? formationLabels[entry.leads.formation] : ''}
+                    </div>
+                    {entry.leads && (
+                      <div className="text-xs text-white/60 mt-1">
+                        {entry.leads.first_name} {entry.leads.last_name}
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+        {daysInMonth.every(day => getEntriesForDay(day).length === 0) && (
+          <div className="apple-card rounded-xl p-8 text-center">
+            <p className="text-white/50 font-light">Aucune formation planifiée ce mois</p>
+          </div>
+        )}
       </div>
 
       {/* Modal détails */}

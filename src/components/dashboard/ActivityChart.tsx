@@ -60,8 +60,8 @@ export default function ActivityChart({ leads, title = "Activité des leads" }: 
   }
 
   return (
-    <div className="apple-card rounded-xl p-4">
-      <h3 className="text-sm font-semibold mb-4 text-white tracking-tight">{title}</h3>
+    <div className="apple-card rounded-xl p-3 sm:p-4">
+      <h3 className="text-xs sm:text-sm font-semibold mb-3 sm:mb-4 text-white tracking-tight">{title}</h3>
       
       {chartData.length === 0 ? (
         <p className="text-white/40 text-center py-6 text-xs font-light">Aucune donnée</p>

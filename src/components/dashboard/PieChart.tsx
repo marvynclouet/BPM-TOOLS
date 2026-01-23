@@ -71,12 +71,12 @@ export default function PieChart({ data, title }: PieChartProps) {
   ]
 
   return (
-    <div className="apple-card rounded-xl p-4">
-      <h3 className="text-sm font-semibold mb-4 text-white tracking-tight">{title}</h3>
-      <div className="flex items-center justify-center gap-4">
+    <div className="apple-card rounded-xl p-3 sm:p-4">
+      <h3 className="text-xs sm:text-sm font-semibold mb-3 sm:mb-4 text-white tracking-tight">{title}</h3>
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
         {/* Camembert SVG */}
         <div className="flex-shrink-0">
-          <svg width="120" height="120" viewBox="0 0 200 200" className="transform -rotate-90">
+          <svg width="100" height="100" viewBox="0 0 200 200" className="transform -rotate-90 sm:w-[120px] sm:h-[120px]">
             {segments.map((segment, idx) => {
               const color = segment.color || defaultColors[idx % defaultColors.length]
               const colorValue = color.replace('bg-', '').replace('-500', '')
@@ -109,7 +109,7 @@ export default function PieChart({ data, title }: PieChartProps) {
         </div>
 
         {/* Légende */}
-        <div className="flex-1 space-y-3">
+        <div className="flex-1 space-y-2 sm:space-y-3 w-full sm:w-auto">
           {segments.map((segment, idx) => {
             const color = segment.color || defaultColors[idx % defaultColors.length]
             const colorMap: Record<string, string> = {

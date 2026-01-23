@@ -183,19 +183,19 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
 
   return (
     <tr className="hover:bg-white/5 transition-colors">
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
         <div className="text-sm font-semibold text-white">
           {lead?.first_name} {lead?.last_name}
         </div>
         <div className="text-xs text-white/40 font-light">{lead?.phone}</div>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
         <div className="text-sm text-white/60 font-medium">
           {lead?.formation ? formationLabels[lead.formation] : '-'}
         </div>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className={`inline-flex px-3 py-1.5 text-xs font-semibold rounded-full ${
+      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
+        <span className={`inline-flex px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold rounded-full ${
           entry.entry_type === 'acompte' 
             ? 'bg-orange-500/20 text-orange-300'
             : entry.entry_type === 'solde'
@@ -205,7 +205,7 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
           {entryTypeLabels[entry.entry_type]}
         </span>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
         {editingField === 'amount' ? (
           <div className="flex items-center gap-2">
             <input
@@ -233,7 +233,7 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
           </div>
         )}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
         {editingField === 'remaining_amount' ? (
           <div className="flex items-center gap-2">
             <input
@@ -263,7 +263,7 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
           </div>
         )}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
         <div className="text-sm text-white/60 font-medium">
           {payment?.paid_at
             ? format(new Date(payment.paid_at), 'dd MMM yyyy', { locale: fr })
@@ -274,7 +274,7 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
             : '-'}
         </div>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
         {editingField === 'commission_closer' ? (
           <div className="flex items-center gap-2">
             <input
@@ -302,7 +302,7 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
           </div>
         )}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
         {editingField === 'commission_formateur' ? (
           <div className="flex items-center gap-2">
             <input
@@ -330,7 +330,7 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
           </div>
         )}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
         <div className="flex items-center gap-2">
           <button
             onClick={handleGenerateInvoice}

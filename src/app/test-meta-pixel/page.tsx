@@ -84,7 +84,7 @@ export default function TestMetaPixelPage() {
       })
       setTestResult(prev => prev + '\n\n✅ Événement manuel envoyé: ManualTest')
     } else {
-      setTestResult('❌ Le pixel Meta n\'est pas initialisé')
+      setTestResult('❌ Le pixel Meta n&apos;est pas initialisé')
     }
   }
 

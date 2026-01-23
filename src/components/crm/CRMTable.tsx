@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Lead, UserRole } from '@/types'
 import LeadRow from './LeadRow'
 import AddLeadModal from './AddLeadModal'
@@ -89,29 +90,29 @@ export default function CRMTable({ leads, closers, currentUser }: CRMTableProps)
   return (
     <div className="space-y-6">
       {/* Filtres, vue et bouton ajouter */}
-      <div className="flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex flex-wrap gap-3 items-center">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-stretch sm:items-center justify-between">
+        <div className="flex flex-wrap gap-2 sm:gap-3 items-center flex-1">
           {/* Toggle vue */}
-          <div className="flex gap-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-1">
+          <div className="flex gap-1 sm:gap-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-1">
             <button
               onClick={() => setViewMode('table')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                 viewMode === 'table'
                   ? 'bg-white text-black'
                   : 'text-white/70 hover:text-white'
               }`}
             >
-              📋 Tableau
+              📋 <span className="hidden sm:inline">Tableau</span>
             </button>
             <button
               onClick={() => setViewMode('trello')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                 viewMode === 'trello'
                   ? 'bg-white text-black'
                   : 'text-white/70 hover:text-white'
               }`}
             >
-              📊 Trello
+              📊 <span className="hidden sm:inline">Trello</span>
             </button>
           </div>
 
@@ -121,7 +122,7 @@ export default function CRMTable({ leads, closers, currentUser }: CRMTableProps)
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="apple-card px-5 py-2.5 rounded-xl text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
+                className="apple-card px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-white/20 transition-all flex-1 sm:flex-none min-w-[140px]"
               >
                 <option value="all">Tous les statuts</option>
                 {Object.entries(statusLabels).map(([value, label]) => (
@@ -134,7 +135,7 @@ export default function CRMTable({ leads, closers, currentUser }: CRMTableProps)
               <select
                 value={filterFormation}
                 onChange={(e) => setFilterFormation(e.target.value)}
-                className="apple-card px-5 py-2.5 rounded-xl text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
+                className="apple-card px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-white/20 transition-all flex-1 sm:flex-none min-w-[140px]"
               >
                 <option value="all">Toutes les formations</option>
                 {Object.entries(formationLabels).map(([value, label]) => (
@@ -147,7 +148,7 @@ export default function CRMTable({ leads, closers, currentUser }: CRMTableProps)
               <select
                 value={filterMonth}
                 onChange={(e) => setFilterMonth(e.target.value)}
-                className="apple-card px-5 py-2.5 rounded-xl text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
+                className="apple-card px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-white/20 transition-all flex-1 sm:flex-none min-w-[140px]"
               >
                 <option value="all">Tous les mois</option>
                 {getMonthOptions().map(({ value, label }) => (
@@ -160,7 +161,7 @@ export default function CRMTable({ leads, closers, currentUser }: CRMTableProps)
               <select
                 value={filterSource}
                 onChange={(e) => setFilterSource(e.target.value)}
-                className="apple-card px-5 py-2.5 rounded-xl text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
+                className="apple-card px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-white/20 transition-all flex-1 sm:flex-none min-w-[140px]"
               >
                 <option value="all">Toutes les sources</option>
                 {Object.entries(sourceLabels).map(([value, label]) => (
@@ -175,9 +176,9 @@ export default function CRMTable({ leads, closers, currentUser }: CRMTableProps)
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-6 py-2.5 bg-white text-black rounded-xl font-semibold hover:bg-white/90 transition-all shadow-lg hover:shadow-xl"
+          className="px-4 sm:px-6 py-2 sm:py-2.5 bg-white text-black rounded-xl text-xs sm:text-sm font-semibold hover:bg-white/90 transition-all shadow-lg hover:shadow-xl whitespace-nowrap"
         >
-          ➕ Ajouter un client
+          ➕ <span className="hidden sm:inline">Ajouter un client</span><span className="sm:hidden">Ajouter</span>
         </button>
       </div>
 
@@ -194,54 +195,56 @@ export default function CRMTable({ leads, closers, currentUser }: CRMTableProps)
       {viewMode === 'trello' ? (
         <TrelloView leads={leads} closers={closers} currentUser={currentUser} />
       ) : (
-        <div className="apple-card rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse table-fixed" style={{ minWidth: '1500px' }}>
+        <>
+          {/* Vue desktop - Table */}
+          <div className="hidden lg:block apple-card rounded-2xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '140px' }}>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '140px' }}>
                   Client
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '110px' }}>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '110px' }}>
                   Téléphone
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '150px' }}>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '150px' }}>
                   Email
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '90px' }}>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '90px' }}>
                   Formation
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '100px' }}>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '100px' }}>
                   Source
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '80px' }}>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '80px' }}>
                   Format
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '80px' }}>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '80px' }}>
                   Jour
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '110px' }}>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '110px' }}>
                   Date début
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '110px' }}>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '110px' }}>
                   Statut
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '100px' }}>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '100px' }}>
                   Closer
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '100px' }}>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '100px' }}>
                   Date ajout
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '90px' }}>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '90px' }}>
                   Prix fixé
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '90px' }}>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '90px' }}>
                   Acompte
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '100px' }}>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '100px' }}>
                   Intérêt
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '180px' }}>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '180px' }}>
                   Actions
                 </th>
               </tr>
@@ -262,6 +265,91 @@ export default function CRMTable({ leads, closers, currentUser }: CRMTableProps)
           </table>
         </div>
       </div>
+
+      {/* Vue mobile - Cartes */}
+      <div className="lg:hidden space-y-4">
+        {filteredLeads.length === 0 ? (
+          <div className="apple-card rounded-2xl p-8 text-center">
+            <p className="text-white/40 font-light">Aucun lead trouvé</p>
+          </div>
+        ) : (
+          filteredLeads.map((lead) => (
+            <div key={lead.id} className="apple-card rounded-2xl p-4 space-y-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-base font-semibold text-white">
+                    {lead.first_name} {lead.last_name}
+                  </h3>
+                  <p className="text-sm text-white/60">{lead.phone}</p>
+                  {lead.email && (
+                    <p className="text-xs text-white/50 mt-1">{lead.email}</p>
+                  )}
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  lead.status === 'clos' ? 'bg-green-500/20 text-green-300' :
+                  lead.status === 'appele' ? 'bg-purple-500/20 text-purple-300' :
+                  lead.status === 'acompte_regle' ? 'bg-orange-500/20 text-orange-300' :
+                  lead.status === 'ko' ? 'bg-red-500/20 text-red-300' :
+                  'bg-blue-500/20 text-blue-300'
+                }`}>
+                  {statusLabels[lead.status] || lead.status}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-white/50">Formation:</span>
+                  <span className="text-white ml-2">{formationLabels[lead.formation] || lead.formation}</span>
+                </div>
+                <div>
+                  <span className="text-white/50">Source:</span>
+                  <span className="text-white ml-2">{sourceLabels[lead.source || 'direct'] || lead.source || 'Direct'}</span>
+                </div>
+                {lead.price_fixed && (
+                  <div>
+                    <span className="text-white/50">Prix:</span>
+                    <span className="text-white ml-2 font-semibold">{lead.price_fixed.toFixed(2)} €</span>
+                  </div>
+                )}
+                {lead.users && (
+                  <div>
+                    <span className="text-white/50">Closer:</span>
+                    <span className="text-white ml-2">{lead.users.full_name || lead.users.email}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-white/10">
+                <button
+                  onClick={() => {
+                    const rowElement = document.querySelector(`[data-lead-id="${lead.id}"]`)
+                    if (rowElement) {
+                      const commentButton = rowElement.querySelector('[data-comment-button]') as HTMLElement
+                      commentButton?.click()
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 bg-blue-500/20 text-blue-300 rounded-lg text-xs font-medium hover:bg-blue-500/30 transition"
+                >
+                  💬 Commentaires
+                </button>
+                <button
+                  onClick={() => {
+                    const rowElement = document.querySelector(`[data-lead-id="${lead.id}"]`)
+                    if (rowElement) {
+                      const detailButton = rowElement.querySelector('[data-detail-button]') as HTMLElement
+                      detailButton?.click()
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 bg-white/10 text-white rounded-lg text-xs font-medium hover:bg-white/20 transition"
+                >
+                  Voir détails
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      </>
       )}
     </div>
   )

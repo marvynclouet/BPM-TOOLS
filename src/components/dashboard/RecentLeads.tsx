@@ -42,17 +42,17 @@ export default function RecentLeads({ leads }: RecentLeadsProps) {
   }
 
   return (
-    <div className="apple-card rounded-xl p-4">
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="text-sm font-semibold text-white tracking-tight">Nouveaux leads</h3>
+    <div className="apple-card rounded-xl p-3 sm:p-4">
+      <div className="flex justify-between items-center mb-2 sm:mb-3">
+        <h3 className="text-xs sm:text-sm font-semibold text-white tracking-tight">Nouveaux leads</h3>
         <Link
           href="/dashboard/crm"
-          className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
+          className="text-[10px] sm:text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
         >
-          Voir tout →
+          <span className="hidden sm:inline">Voir tout</span> →
         </Link>
       </div>
-      <div className="space-y-2 max-h-[200px] overflow-y-auto">
+      <div className="space-y-1.5 sm:space-y-2 max-h-[180px] sm:max-h-[200px] overflow-y-auto">
         {leads.length === 0 ? (
           <p className="text-white/40 text-center py-4 text-xs font-light">Aucun nouveau lead</p>
         ) : (

@@ -44,6 +44,20 @@ export default function AccountingTable({ entries }: AccountingTableProps) {
     window.location.reload()
   }
 
+  // Labels pour les types d'entrées
+  const entryTypeLabels: Record<string, string> = {
+    acompte: 'Acompte',
+    solde: 'Solde',
+    complet: 'Complet',
+  }
+
+  // Labels pour les formations
+  const formationLabels: Record<string, string> = {
+    inge_son: 'Ingé son',
+    beatmaking: 'Beatmaking',
+    autre: 'Autre',
+  }
+
   // Calculer les totaux globaux
   const totalAmount = entries.reduce((sum, entry) => sum + Number(entry.amount), 0)
   const totalCommissionCloser = entries.reduce(
@@ -75,88 +89,88 @@ export default function AccountingTable({ entries }: AccountingTableProps) {
   const beneficeMois = caNetMois // Pour l'instant, bénéfice = CA net (on peut ajouter des coûts plus tard)
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8">
       {/* Statistiques du mois en cours */}
-      <div className="space-y-3">
-        <h2 className="text-xl font-semibold text-white">
+      <div className="space-y-2 sm:space-y-3">
+        <h2 className="text-lg sm:text-xl font-semibold text-white">
           Statistiques du mois ({format(now, 'MMMM yyyy', { locale: fr })})
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-          <div className="apple-card rounded-2xl p-6 border-2 border-blue-500/30">
-            <div className="text-sm text-white/60 mb-2 font-medium">CA Brut</div>
-            <div className="text-3xl font-semibold tracking-tight text-blue-300">{caBrutMois.toFixed(2)} €</div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+          <div className="apple-card rounded-xl sm:rounded-2xl p-4 sm:p-6 border-2 border-blue-500/30">
+            <div className="text-xs sm:text-sm text-white/60 mb-1 sm:mb-2 font-medium">CA Brut</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight text-blue-300">{caBrutMois.toFixed(2)} €</div>
           </div>
-          <div className="apple-card rounded-2xl p-6 border-2 border-purple-500/30">
-            <div className="text-sm text-white/60 mb-2 font-medium">CA Net</div>
-            <div className="text-3xl font-semibold tracking-tight text-purple-300">{caNetMois.toFixed(2)} €</div>
+          <div className="apple-card rounded-xl sm:rounded-2xl p-4 sm:p-6 border-2 border-purple-500/30">
+            <div className="text-xs sm:text-sm text-white/60 mb-1 sm:mb-2 font-medium">CA Net</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight text-purple-300">{caNetMois.toFixed(2)} €</div>
           </div>
-          <div className="apple-card rounded-2xl p-6 border-2 border-orange-500/30">
-            <div className="text-sm text-white/60 mb-2 font-medium">Commissions</div>
-            <div className="text-3xl font-semibold tracking-tight text-orange-300">{commissionsMois.toFixed(2)} €</div>
+          <div className="apple-card rounded-xl sm:rounded-2xl p-4 sm:p-6 border-2 border-orange-500/30">
+            <div className="text-xs sm:text-sm text-white/60 mb-1 sm:mb-2 font-medium">Commissions</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight text-orange-300">{commissionsMois.toFixed(2)} €</div>
           </div>
-          <div className="apple-card rounded-2xl p-6 border-2 border-green-500/30">
-            <div className="text-sm text-white/60 mb-2 font-medium">Bénéfice</div>
-            <div className="text-3xl font-semibold tracking-tight text-green-300">{beneficeMois.toFixed(2)} €</div>
+          <div className="apple-card rounded-xl sm:rounded-2xl p-4 sm:p-6 border-2 border-green-500/30">
+            <div className="text-xs sm:text-sm text-white/60 mb-1 sm:mb-2 font-medium">Bénéfice</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight text-green-300">{beneficeMois.toFixed(2)} €</div>
           </div>
         </div>
       </div>
 
       {/* Totaux globaux */}
-      <div className="space-y-3">
-        <h2 className="text-xl font-semibold text-white">Totaux globaux</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-          <div className="apple-card rounded-2xl p-6">
-            <div className="text-sm text-white/60 mb-2 font-medium">CA Total</div>
-            <div className="text-3xl font-semibold tracking-tight">{totalAmount.toFixed(2)} €</div>
+      <div className="space-y-2 sm:space-y-3">
+        <h2 className="text-lg sm:text-xl font-semibold text-white">Totaux globaux</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+          <div className="apple-card rounded-xl sm:rounded-2xl p-4 sm:p-6">
+            <div className="text-xs sm:text-sm text-white/60 mb-1 sm:mb-2 font-medium">CA Total</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight">{totalAmount.toFixed(2)} €</div>
           </div>
-          <div className="apple-card rounded-2xl p-6">
-            <div className="text-sm text-white/60 mb-2 font-medium">Commissions Closers</div>
-            <div className="text-3xl font-semibold tracking-tight">{totalCommissionCloser.toFixed(2)} €</div>
+          <div className="apple-card rounded-xl sm:rounded-2xl p-4 sm:p-6">
+            <div className="text-xs sm:text-sm text-white/60 mb-1 sm:mb-2 font-medium">Commissions Closers</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight">{totalCommissionCloser.toFixed(2)} €</div>
           </div>
-          <div className="apple-card rounded-2xl p-6">
-            <div className="text-sm text-white/60 mb-2 font-medium">Commissions Formateurs</div>
-            <div className="text-3xl font-semibold tracking-tight">{totalCommissionFormateur.toFixed(2)} €</div>
+          <div className="apple-card rounded-xl sm:rounded-2xl p-4 sm:p-6">
+            <div className="text-xs sm:text-sm text-white/60 mb-1 sm:mb-2 font-medium">Commissions Formateurs</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight">{totalCommissionFormateur.toFixed(2)} €</div>
           </div>
-          <div className="apple-card rounded-2xl p-6">
-            <div className="text-sm text-white/60 mb-2 font-medium">Net</div>
-            <div className="text-3xl font-semibold tracking-tight">
+          <div className="apple-card rounded-xl sm:rounded-2xl p-4 sm:p-6">
+            <div className="text-xs sm:text-sm text-white/60 mb-1 sm:mb-2 font-medium">Net</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight">
               {totalNet.toFixed(2)} €
             </div>
           </div>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="apple-card rounded-2xl overflow-hidden">
+      {/* Table Desktop */}
+      <div className="hidden lg:block apple-card rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="px-6 py-4 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider">
                   Client
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider">
                   Formation
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider">
                   Type
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider">
                   Montant
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider">
                   Reste à payer
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider">
                   Date paiement
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider">
                   Commission Closer
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider">
                   Commission Formateur
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -181,6 +195,131 @@ export default function AccountingTable({ entries }: AccountingTableProps) {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Vue mobile - Cartes */}
+      <div className="lg:hidden space-y-3">
+        {entries.length === 0 ? (
+          <div className="apple-card rounded-2xl p-8 text-center">
+            <p className="text-white/40 font-light">Aucune entrée comptable</p>
+          </div>
+        ) : (
+          entries.map((entry) => (
+            <div key={entry.id} className="apple-card rounded-xl p-4 space-y-3">
+              <div className="flex justify-between items-start">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-semibold text-white">
+                    {entry.leads?.first_name} {entry.leads?.last_name}
+                  </h3>
+                  <p className="text-sm text-white/60">{entry.leads?.phone}</p>
+                  {entry.leads?.email && (
+                    <p className="text-xs text-white/50 mt-1 truncate">{entry.leads.email}</p>
+                  )}
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ml-2 ${
+                  entry.entry_type === 'complet' ? 'bg-green-500/20 text-green-300' :
+                  entry.entry_type === 'acompte' ? 'bg-orange-500/20 text-orange-300' :
+                  'bg-blue-500/20 text-blue-300'
+                }`}>
+                  {entryTypeLabels[entry.entry_type]}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-white/50">Formation:</span>
+                  <span className="text-white ml-1 block truncate">{formationLabels[entry.leads?.formation || 'autre']}</span>
+                </div>
+                <div>
+                  <span className="text-white/50">Montant:</span>
+                  <span className="text-white ml-1 font-semibold">{entry.amount.toFixed(2)} €</span>
+                </div>
+                {entry.remaining_amount && (
+                  <div>
+                    <span className="text-white/50">Reste:</span>
+                    <span className="text-white ml-1">{entry.remaining_amount.toFixed(2)} €</span>
+                  </div>
+                )}
+                <div>
+                  <span className="text-white/50">Date:</span>
+                  <span className="text-white ml-1">{format(new Date(entry.created_at), 'dd MMM yyyy', { locale: fr })}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 text-xs">
+                <div>
+                  <span className="text-white/50">Com. Closer:</span>
+                  <span className="text-white ml-1">{entry.commission_closer.toFixed(2)} €</span>
+                </div>
+                <div>
+                  <span className="text-white/50">Com. Formateur:</span>
+                  <span className="text-white ml-1">{entry.commission_formateur.toFixed(2)} €</span>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-white/10">
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/accounting/generate-invoice', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ entryId: entry.id }),
+                      })
+                      if (response.ok) {
+                        const blob = await response.blob()
+                        const url = window.URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `facture-${entry.leads?.first_name}-${entry.leads?.last_name}.pdf`
+                        document.body.appendChild(a)
+                        a.click()
+                        window.URL.revokeObjectURL(url)
+                        document.body.removeChild(a)
+                      }
+                    } catch (error) {
+                      alert('Erreur lors de la génération')
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 bg-purple-500/20 text-purple-300 rounded-lg text-xs font-medium hover:bg-purple-500/30 transition"
+                >
+                  📄 Générer
+                </button>
+                {entry.leads?.documents_sent_at ? (
+                  <div className="flex-1 px-3 py-2 bg-green-500/20 text-green-300 rounded-lg text-xs font-medium text-center">
+                    ✅ Envoyée
+                  </div>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      if (!entry.leads?.email) {
+                        alert('Email manquant')
+                        return
+                      }
+                      try {
+                        const response = await fetch('/api/gestion/generate-documents', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ leadId: entry.lead_id, method: 'email' }),
+                        })
+                        if (response.ok) {
+                          alert('Facture envoyée !')
+                          handleUpdate()
+                        }
+                      } catch (error) {
+                        alert('Erreur lors de l\'envoi')
+                      }
+                    }}
+                    disabled={!entry.leads?.email}
+                    className="flex-1 px-3 py-2 bg-blue-500/20 text-blue-300 rounded-lg text-xs font-medium hover:bg-blue-500/30 transition disabled:opacity-50"
+                  >
+                    📧 Envoyer
+                  </button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   )

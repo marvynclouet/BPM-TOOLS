@@ -38,12 +38,12 @@ export default function DatePicker({ value, onChange, formationFormat, formation
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg text-white hover:bg-white/10 transition text-left flex items-center justify-between"
+        className="w-full px-3 sm:px-4 py-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg text-white hover:bg-white/10 transition text-left flex items-center justify-between text-xs sm:text-sm"
       >
-        <span className={value ? 'text-white' : 'text-white/50'}>
+        <span className={value ? 'text-white truncate flex-1' : 'text-white/50'}>
           {value ? format(new Date(value), 'dd MMM yyyy', { locale: fr }) : placeholder}
         </span>
-        <span className="text-lg">📅</span>
+        <span className="text-base sm:text-lg flex-shrink-0 ml-2">📅</span>
       </button>
 
       {/* Calendrier popup */}
@@ -53,33 +53,33 @@ export default function DatePicker({ value, onChange, formationFormat, formation
             className="fixed inset-0 z-40" 
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute top-full left-0 mt-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 z-50 shadow-2xl min-w-[320px]">
+          <div className="absolute top-full left-0 sm:left-auto right-0 sm:right-auto mt-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-3 sm:p-4 z-50 shadow-2xl w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[320px] max-w-[320px] sm:max-w-none">
             {/* Navigation mois */}
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-3 sm:mb-4">
               <button
                 type="button"
                 onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-                className="px-3 py-1.5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-white/10 transition text-white"
+                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-white/10 transition text-white text-xs sm:text-sm"
               >
                 ←
               </button>
-              <h3 className="font-semibold text-white text-sm">
+              <h3 className="font-semibold text-white text-xs sm:text-sm">
                 {format(currentMonth, 'MMMM yyyy', { locale: fr })}
               </h3>
               <button
                 type="button"
                 onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-                className="px-3 py-1.5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-white/10 transition text-white"
+                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-white/10 transition text-white text-xs sm:text-sm"
               >
                 →
               </button>
             </div>
 
             {/* Grille calendrier */}
-            <div className="grid grid-cols-7 gap-1.5">
+            <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
               {/* En-têtes jours */}
               {weekDays.map(day => (
-                <div key={day} className="text-xs text-center text-white/60 font-semibold py-2">
+                <div key={day} className="text-[10px] sm:text-xs text-center text-white/60 font-semibold py-1 sm:py-2">
                   {day}
                 </div>
               ))}
@@ -99,7 +99,7 @@ export default function DatePicker({ value, onChange, formationFormat, formation
                     key={day.toISOString()}
                     type="button"
                     onClick={() => handleDateSelect(day)}
-                    className={`aspect-square rounded-lg text-sm font-medium transition ${
+                    className={`aspect-square rounded-lg text-[10px] sm:text-xs lg:text-sm font-medium transition ${
                       isSelected
                         ? 'bg-white text-black font-bold shadow-lg'
                         : isToday

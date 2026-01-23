@@ -90,13 +90,13 @@ export default function MiniCalendar({ entries }: MiniCalendarProps) {
           return (
             <div
               key={idx}
-              className={`p-3 rounded-xl border transition-all ${
+              className={`p-2 sm:p-3 rounded-lg sm:rounded-xl border transition-all ${
                 isToday
                   ? 'apple-card bg-blue-500/10 border-blue-500/30 shadow-lg shadow-blue-500/10'
                   : 'apple-card-hover'
               }`}
             >
-              <div className={`text-xs font-medium mb-2 tracking-wide ${isToday ? 'text-blue-300' : 'text-white/50'}`}>
+              <div className={`text-[10px] sm:text-xs font-medium mb-1 sm:mb-2 tracking-wide ${isToday ? 'text-blue-300' : 'text-white/50'}`}>
                 {dayName}
               </div>
               <div className={`text-base font-semibold mb-2 ${isToday ? 'text-blue-300' : 'text-white'}`}>

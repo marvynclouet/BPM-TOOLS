@@ -168,7 +168,7 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
 
   return (
     <>
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="hidden lg:flex gap-4 overflow-x-auto pb-4">
         {/* Colonne Nouveau (non assignés) */}
         <div
           className="flex-shrink-0 w-80 bg-blue-500/10 rounded-xl p-4 border border-white/10"
@@ -314,6 +314,96 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
             )}
           </div>
         </div>
+      </div>
+
+      {/* Vue mobile - Liste simplifiée */}
+      <div className="lg:hidden space-y-4">
+        {closers.map((closer) => {
+          const closerLeads = leads.filter(l => l.closer_id === closer.id)
+          if (closerLeads.length === 0) return null
+
+          return (
+            <div key={closer.id} className="apple-card rounded-xl p-4">
+              <h3 className="text-base font-semibold text-white mb-3">
+                {closer.full_name || closer.email}
+              </h3>
+              <div className="space-y-2">
+                {closerLeads.map((lead) => (
+                  <div
+                    key={lead.id}
+                    onClick={() => setSelectedLead(lead)}
+                    className={`p-3 rounded-lg border cursor-pointer transition ${getCardColor(lead.status)}`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-white text-sm">
+                        {lead.first_name} {lead.last_name}
+                      </span>
+                      <span className="text-lg">{getStatusEmoji(lead.status)}</span>
+                    </div>
+                    <div className="text-xs text-white/60">
+                      {formationLabels[lead.formation] || lead.formation}
+                    </div>
+                    {lead.interest_level && (
+                      <div className="text-xs text-white/50 mt-1">
+                        {interestLevelEmojis[lead.interest_level]} {lead.interest_level}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+        {/* Colonne Nouveau */}
+        {leads.filter(l => !l.closer_id || !closers.find(c => c.id === l.closer_id)).length > 0 && (
+          <div className="apple-card rounded-xl p-4">
+            <h3 className="text-base font-semibold text-white mb-3">Nouveau</h3>
+            <div className="space-y-2">
+              {leads.filter(l => !l.closer_id || !closers.find(c => c.id === l.closer_id)).map((lead) => (
+                <div
+                  key={lead.id}
+                  onClick={() => setSelectedLead(lead)}
+                  className={`p-3 rounded-lg border cursor-pointer transition ${getCardColor(lead.status)}`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-white text-sm">
+                      {lead.first_name} {lead.last_name}
+                    </span>
+                    <span className="text-lg">{getStatusEmoji(lead.status)}</span>
+                  </div>
+                  <div className="text-xs text-white/60">
+                    {formationLabels[lead.formation] || lead.formation}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Colonne KO */}
+        {leads.filter(l => l.status === 'ko').length > 0 && (
+          <div className="apple-card rounded-xl p-4">
+            <h3 className="text-base font-semibold text-white mb-3">❌ K.O</h3>
+            <div className="space-y-2">
+              {leads.filter(l => l.status === 'ko').map((lead) => (
+                <div
+                  key={lead.id}
+                  onClick={() => setSelectedLead(lead)}
+                  className={`p-3 rounded-lg border cursor-pointer transition ${getCardColor(lead.status)}`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-white text-sm">
+                      {lead.first_name} {lead.last_name}
+                    </span>
+                    <span className="text-lg">{getStatusEmoji(lead.status)}</span>
+                  </div>
+                  <div className="text-xs text-white/60">
+                    {formationLabels[lead.formation] || lead.formation}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal détail client */}

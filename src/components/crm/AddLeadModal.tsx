@@ -70,21 +70,21 @@ export default function AddLeadModal({ onClose, onSave, currentUserId }: AddLead
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-3 sm:p-4">
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl w-full max-w-md max-h-[95vh] sm:max-h-[90vh] flex flex-col shadow-2xl">
         {/* En-tête fixe */}
-        <div className="flex justify-between items-center p-6 border-b border-white/5 flex-shrink-0">
-          <h2 className="text-2xl font-bold text-white">➕ Ajouter un client</h2>
+        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-white/5 flex-shrink-0">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">➕ Ajouter un client</h2>
           <button
             onClick={onClose}
-            className="text-white/70 hover:text-white text-2xl"
+            className="text-white/70 hover:text-white text-2xl sm:text-3xl"
           >
             ×
           </button>
         </div>
 
         {/* Contenu scrollable */}
-        <div className="overflow-y-auto flex-1 p-6">
+        <div className="overflow-y-auto flex-1 p-4 sm:p-6">
           <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-2 text-white/70">

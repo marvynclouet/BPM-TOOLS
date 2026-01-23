@@ -65,13 +65,13 @@ export default async function ComptabilitePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-8">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-semibold tracking-tight">Comptabilité</h1>
-          <p className="text-white/50 text-lg">Gestion des ventes et commissions</p>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+        <div className="space-y-1 sm:space-y-2">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight">Comptabilité</h1>
+          <p className="text-white/50 text-sm sm:text-base lg:text-lg">Gestion des ventes et commissions</p>
         </div>
-        <button className="px-6 py-2.5 apple-card rounded-xl font-semibold hover:bg-white/10 transition-all">
+        <button className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 apple-card rounded-xl text-sm sm:text-base font-semibold hover:bg-white/10 transition-all">
           Exporter CSV
         </button>
       </div>
