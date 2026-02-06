@@ -3,9 +3,11 @@
 interface PieChartProps {
   data: { label: string; value: number; color?: string }[]
   title: string
+  /** Format d'affichage des valeurs dans la légende (ex: (v) => v.toFixed(2) + ' €') */
+  valueFormat?: (value: number) => string
 }
 
-export default function PieChart({ data, title }: PieChartProps) {
+export default function PieChart({ data, title, valueFormat }: PieChartProps) {
   // Filtrer les données avec valeur > 0
   const filteredData = data.filter(d => d.value > 0)
   
@@ -133,7 +135,8 @@ export default function PieChart({ data, title }: PieChartProps) {
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-white/60 font-medium">{segment.label}</span>
                     <span className="text-xs font-semibold text-white">
-                      {segment.value} <span className="text-white/40">({segment.percentage.toFixed(1)}%)</span>
+                      {valueFormat ? valueFormat(segment.value) : segment.value}{' '}
+                      <span className="text-white/40">({segment.percentage.toFixed(1)} %)</span>
                     </span>
                   </div>
                 </div>

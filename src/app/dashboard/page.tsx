@@ -37,6 +37,7 @@ export default async function DashboardPage() {
     let statusDistribution: any[] = []
     let allLeadsForChart: any[] = []
     let closersRanking: any[] = []
+    let topProducts: { formation: string; label: string; count: number; ca: number }[] = []
 
     try {
       const now = new Date()
@@ -198,6 +199,34 @@ export default async function DashboardPage() {
       })
 
       closersRanking = Object.values(statsByCloser)
+
+      // Top des produits vendus (par formation)
+      const { data: allAccountingEntries } = await adminClient
+        .from('accounting_entries')
+        .select('amount, lead_id, leads:lead_id(formation)')
+        .order('created_at', { ascending: false })
+
+      const formationLabels: Record<string, string> = {
+        inge_son: 'Ingé son',
+        beatmaking: 'Beatmaking',
+        autre: 'Autre',
+      }
+      const byFormation: Record<string, { count: number; ca: number }> = {}
+      ;(allAccountingEntries || []).forEach((entry: any) => {
+        const formation = entry.leads?.formation || 'autre'
+        if (!byFormation[formation]) byFormation[formation] = { count: 0, ca: 0 }
+        byFormation[formation].count += 1
+        byFormation[formation].ca += Number(entry.amount || 0)
+      })
+      topProducts = Object.entries(byFormation)
+        .map(([formation, { count, ca }]) => ({
+          formation,
+          label: formationLabels[formation] || formation,
+          count,
+          ca,
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 6)
     } catch (dbError: any) {
       console.log('⚠️ Erreur DB (mais on continue):', dbError.message)
       // On continue quand même avec des valeurs par défaut
@@ -258,6 +287,36 @@ export default async function DashboardPage() {
           />
           <RecentLeads leads={recentLeads} />
         </div>
+
+        {/* Top des produits vendus */}
+        {topProducts.length > 0 && (
+          <div className="apple-card rounded-xl p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
+              <span>🏆</span> Top des produits vendus
+            </h3>
+            <div className="space-y-2 sm:space-y-3">
+              {topProducts.map((product, idx) => (
+                <div
+                  key={product.formation}
+                  className="flex items-center justify-between py-2 sm:py-2.5 px-3 sm:px-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                >
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="text-white/50 font-semibold text-sm w-5 sm:w-6">{idx + 1}</span>
+                    <span className="font-medium text-white text-sm sm:text-base">{product.label}</span>
+                  </div>
+                  <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm">
+                    <span className="text-white/70">
+                      <span className="text-white font-semibold">{product.count}</span> vente{product.count > 1 ? 's' : ''}
+                    </span>
+                    <span className="text-green-400 font-semibold">
+                      {(Math.round(product.ca * 100) / 100).toFixed(2).replace('.', ',')} €
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Classement des closers */}
         {closersRanking.length > 0 && (

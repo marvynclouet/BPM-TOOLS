@@ -4,6 +4,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUser } from '@/lib/auth'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale/fr'
+import AdminClosersStats from '@/components/dashboard/AdminClosersStats'
+import type { CloserStat } from '@/components/dashboard/AdminClosersStats'
 
 export default async function MonEspacePage() {
   const supabase = await createClient()
@@ -20,8 +22,75 @@ export default async function MonEspacePage() {
   // Récupérer l'utilisateur complet
   const user = await getCurrentUser()
   const currentUserId = user?.id || authUser.id
+  const isAdmin = user?.role === 'admin'
 
   const adminClient = createAdminClient()
+
+  // Pour les admins : récupérer les stats de tous les closers (qui a vendu quoi, commissions)
+  let closersStats: CloserStat[] = []
+  if (isAdmin) {
+    const { data: allEntries } = await adminClient
+      .from('accounting_entries')
+      .select(`
+        id,
+        created_at,
+        amount,
+        commission_closer,
+        entry_type,
+        lead_id,
+        leads:lead_id(
+          closer_id,
+          first_name,
+          last_name,
+          formation
+        )
+      `)
+      .order('created_at', { ascending: false })
+
+    const closerIds = [...new Set((allEntries || []).map((e: any) => e.leads?.closer_id).filter(Boolean))]
+    const { data: usersData } = await adminClient
+      .from('users')
+      .select('id, full_name, email')
+      .in('id', closerIds)
+
+    const usersMap = new Map((usersData || []).map((u: any) => [u.id, u]))
+
+    const byCloser: Record<string, CloserStat> = {}
+    ;(allEntries || []).forEach((entry: any) => {
+      const lead = entry.leads
+      const closerId = lead?.closer_id
+      if (!closerId) return
+
+      const u = usersMap.get(closerId)
+      if (!byCloser[closerId]) {
+        byCloser[closerId] = {
+          closer_id: closerId,
+          closer_name: u?.full_name || '',
+          closer_email: u?.email || '',
+          totalCA: 0,
+          totalCommissions: 0,
+          totalSales: 0,
+          sales: [],
+        }
+      }
+
+      const amount = Number(entry.amount || 0)
+      const commission = Number(entry.commission_closer || 0)
+      byCloser[closerId].totalCA += amount
+      byCloser[closerId].totalCommissions += commission
+      byCloser[closerId].totalSales += 1
+      byCloser[closerId].sales.push({
+        id: entry.id,
+        created_at: entry.created_at,
+        amount,
+        commission_closer: commission,
+        client_name: `${lead?.first_name || ''} ${lead?.last_name || ''}`.trim() || '-',
+        formation: lead?.formation || '',
+        entry_type: entry.entry_type || '',
+      })
+    })
+    closersStats = Object.values(byCloser).sort((a, b) => b.totalCA - a.totalCA)
+  }
 
   // Récupérer tous les leads assignés à l'utilisateur connecté
   const { data: myLeads } = await adminClient
@@ -281,6 +350,13 @@ export default async function MonEspacePage() {
           </>
         )}
       </div>
+
+      {/* Section admin : stats des closers (graphiques + qui a vendu quoi) */}
+      {isAdmin && (
+        <div className="pt-6 sm:pt-8 border-t border-white/10">
+          <AdminClosersStats closersStats={closersStats} />
+        </div>
+      )}
     </div>
   )
 }

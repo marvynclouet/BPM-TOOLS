@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendNewLeadNotification } from '@/lib/communications'
 
 export async function POST(request: NextRequest) {
+  console.log('📥 POST /api/leads/create reçu')
   try {
     const body = await request.json()
     const { first_name, last_name, phone, email, formation, source } = body
@@ -46,6 +48,22 @@ export async function POST(request: NextRequest) {
         { error: 'Erreur lors de la création du lead' },
         { status: 500 }
       )
+    }
+
+    // Notification email (ne bloque pas la réponse si échec)
+    const notificationTo = process.env.LEAD_NOTIFICATION_EMAIL
+    if (notificationTo) {
+      console.log('📧 Envoi notification nouveau lead vers', notificationTo.trim().split(',')[0])
+      sendNewLeadNotification({
+        first_name: data.first_name,
+        last_name: data.last_name,
+        phone: data.phone,
+        email: data.email ?? null,
+        formation: data.formation,
+        source: data.source || 'direct',
+      }).catch((err) => console.error('Notification lead:', err))
+    } else {
+      console.warn('⚠️ LEAD_NOTIFICATION_EMAIL non défini - aucune notification envoyée')
     }
 
     return NextResponse.json(

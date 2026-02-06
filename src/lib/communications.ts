@@ -127,6 +127,85 @@ export async function sendEmailWithDocuments(
   }
 }
 
+/** Envoie un email de notification quand un nouveau lead remplit le formulaire */
+export async function sendNewLeadNotification(lead: {
+  first_name: string
+  last_name: string
+  phone: string
+  email: string | null
+  formation: string
+  source: string
+}): Promise<void> {
+  const toEmails = process.env.LEAD_NOTIFICATION_EMAIL
+  if (!toEmails?.trim()) {
+    console.log('📧 LEAD_NOTIFICATION_EMAIL non configuré - notification lead non envoyée')
+    return
+  }
+
+  const resendApiKey = process.env.RESEND_API_KEY
+  if (!resendApiKey) {
+    console.warn('⚠️ RESEND_API_KEY non configuré - notification lead non envoyée')
+    return
+  }
+
+  const formationLabels: Record<string, string> = {
+    inge_son: 'Ingé son',
+    beatmaking: 'Beatmaking',
+    autre: 'Autre / Je ne sais pas encore',
+  }
+  const formationLabel = formationLabels[lead.formation] || lead.formation
+  const sourceLabel = lead.source === 'direct' ? 'Direct' : lead.source
+
+  try {
+    // @ts-ignore - require nécessaire pour resend
+    const { Resend } = require('resend')
+    const resend = new Resend(resendApiKey)
+    const toList = toEmails.split(',').map((e) => e.trim()).filter(Boolean)
+
+    console.log('📧 Envoi notification lead à', toList.join(', '))
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'BPM Formation <noreply@bpmformation.fr>'
+
+    const { data: sendData, error } = await resend.emails.send({
+      from: fromEmail,
+      to: toList,
+      subject: `🆕 Nouveau lead : ${lead.first_name} ${lead.last_name}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #333;">
+          <h2 style="color: #111;">Nouveau lead reçu</h2>
+          <p>Quelqu'un a rempli le formulaire d'inscription.</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+            <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Nom</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${lead.last_name}</td></tr>
+            <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Prénom</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${lead.first_name}</td></tr>
+            <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Téléphone</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${lead.phone}</td></tr>
+            <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Email</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${lead.email || 'Non renseigné'}</td></tr>
+            <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Formation</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${formationLabel}</td></tr>
+            <tr><td style="padding: 8px 0;"><strong>Source</strong></td><td style="padding: 8px 0;">${sourceLabel}</td></tr>
+          </table>
+          <p style="color: #666; font-size: 14px;">BPM Tools – notification automatique</p>
+        </div>
+      `,
+    })
+
+    if (error) {
+      console.error('❌ Erreur Resend notification lead:', error.message || error)
+      if (error.message?.includes('domain is not verified')) {
+        console.warn('💡 Vérifiez votre domaine sur https://resend.com/domains')
+      }
+      if (error.statusCode === 403 && error.message?.includes('You can only send testing emails')) {
+        console.warn(
+          '💡 Resend en mode test : vous ne pouvez envoyer qu’à l’email de votre compte Resend. ' +
+          'Vérifiez le domaine bpmformation.fr sur https://resend.com/domains pour envoyer à bpmformation2025@gmail.com'
+        )
+      }
+      return
+    }
+    console.log('✅ Notification nouveau lead envoyée à', toList.join(', '), '- ID:', sendData?.id)
+  } catch (err: any) {
+    console.error('❌ Erreur sendNewLeadNotification:', err?.message || err)
+    // Ne pas faire échouer la création du lead si l'email échoue
+  }
+}
+
 export async function sendWhatsAppMessage(
   phone: string,
   firstName: string,
