@@ -39,6 +39,7 @@ export async function PATCH(request: NextRequest, context: Context) {
     const email = body.email != null ? (body.email + '').trim().toLowerCase() : undefined
     const full_name = body.full_name !== undefined ? (body.full_name + '').trim() || null : undefined
     const password = body.password != null ? (body.password + '').trim() : undefined
+    const role = body.role === 'admin' || body.role === 'closer' ? body.role : undefined
 
     if (password !== undefined && password.length > 0 && password.length < 6) {
       return NextResponse.json(
@@ -65,11 +66,12 @@ export async function PATCH(request: NextRequest, context: Context) {
       }
     }
 
-    const userUpdate: { email?: string; full_name?: string | null; updated_at: string } = {
+    const userUpdate: { email?: string; full_name?: string | null; role?: string; updated_at: string } = {
       updated_at: new Date().toISOString(),
     }
     if (email !== undefined) userUpdate.email = email
     if (full_name !== undefined) userUpdate.full_name = full_name
+    if (role !== undefined) userUpdate.role = role
 
     const { error: userError } = await adminClient
       .from('users')

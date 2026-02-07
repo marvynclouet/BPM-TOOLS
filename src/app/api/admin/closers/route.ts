@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
     const email = (body.email || '').trim().toLowerCase()
     const password = (body.password || '').trim()
     const full_name = (body.full_name || '').trim() || null
+    const role = body.role === 'admin' || body.role === 'closer' ? body.role : 'closer'
 
     if (!email) {
       return NextResponse.json({ error: 'Email requis' }, { status: 400 })
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
         {
           id: userId,
           email,
-          role: 'closer',
+          role,
           full_name: full_name || null,
           updated_at: new Date().toISOString(),
         },
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      user: { id: userId, email, full_name, role: 'closer' },
+      user: { id: userId, email, full_name, role },
     })
   } catch (e) {
     console.error('Erreur création closer:', e)

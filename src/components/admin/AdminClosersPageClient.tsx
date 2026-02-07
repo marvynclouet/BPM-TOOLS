@@ -23,6 +23,7 @@ export default function AdminClosersPageClient({
   const [email, setEmail] = useState('')
   const [fullName, setFullName] = useState('')
   const [password, setPassword] = useState('')
+  const [role, setRole] = useState<'closer' | 'admin'>('closer')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -31,8 +32,10 @@ export default function AdminClosersPageClient({
   const [editEmail, setEditEmail] = useState('')
   const [editFullName, setEditFullName] = useState('')
   const [editPassword, setEditPassword] = useState('')
+  const [editRole, setEditRole] = useState<'closer' | 'admin'>('closer')
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
+  const [roleChangingId, setRoleChangingId] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,6 +50,7 @@ export default function AdminClosersPageClient({
           email: email.trim(),
           full_name: fullName.trim() || null,
           password: password.trim(),
+          role,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -64,7 +68,7 @@ export default function AdminClosersPageClient({
           email: data.user.email,
           full_name: data.user.full_name ?? null,
           created_at: new Date().toISOString(),
-          role: 'closer',
+          role: data.user.role || 'closer',
         }])
       }
       router.refresh()
@@ -78,7 +82,30 @@ export default function AdminClosersPageClient({
     setEditEmail(c.email)
     setEditFullName(c.full_name || '')
     setEditPassword('')
+    setEditRole((c.role === 'admin' ? 'admin' : 'closer'))
     setEditError(null)
+  }
+
+  const handleRoleChange = async (userId: string, newRole: 'closer' | 'admin') => {
+    const c = closers.find(x => x.id === userId)
+    if (!c || c.role === newRole) return
+    setRoleChangingId(userId)
+    try {
+      const res = await fetch(`/api/admin/closers/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        alert(data.error || 'Erreur')
+        return
+      }
+      setClosers(prev => prev.map(cl => cl.id === userId ? { ...cl, role: newRole } : cl))
+      router.refresh()
+    } finally {
+      setRoleChangingId(null)
+    }
   }
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -87,9 +114,10 @@ export default function AdminClosersPageClient({
     setEditError(null)
     setEditLoading(true)
     try {
-      const body: { email?: string; full_name?: string | null; password?: string } = {
+      const body: { email?: string; full_name?: string | null; password?: string; role?: 'closer' | 'admin' } = {
         email: editEmail.trim() || undefined,
         full_name: editFullName.trim() || null,
+        role: editRole,
       }
       if (editPassword.trim().length >= 6) body.password = editPassword.trim()
 
@@ -110,6 +138,7 @@ export default function AdminClosersPageClient({
                 ...cl,
                 email: editEmail.trim() || cl.email,
                 full_name: editFullName.trim() || null,
+                role: editRole,
               }
             : cl
         )
@@ -178,6 +207,20 @@ export default function AdminClosersPageClient({
               placeholder="6 caractères minimum"
             />
           </div>
+          <div>
+            <label htmlFor="role" className="block text-sm font-medium text-white/70 mb-1.5">
+              Rôle
+            </label>
+            <select
+              id="role"
+              value={role}
+              onChange={e => setRole(e.target.value as 'closer' | 'admin')}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+            >
+              <option value="closer" className="bg-zinc-900">Closer</option>
+              <option value="admin" className="bg-zinc-900">Admin</option>
+            </select>
+          </div>
           <button
             type="submit"
             disabled={loading}
@@ -189,10 +232,10 @@ export default function AdminClosersPageClient({
       </div>
 
       <div className="apple-card rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">Closers existants</h2>
-        <p className="text-white/50 text-xs mb-4">Tous les comptes qui peuvent être assignés aux leads (closers et admins).</p>
+            <h2 className="text-lg font-semibold text-white mb-4">Closers & admins</h2>
+        <p className="text-white/50 text-xs mb-4">Gérez les rôles (Closer / Admin) et modifiez les comptes.</p>
         {closers.length === 0 ? (
-          <p className="text-white/50 text-sm">Aucun closer pour le moment.</p>
+          <p className="text-white/50 text-sm">Aucun compte pour le moment.</p>
         ) : (
           <ul className="divide-y divide-white/10">
             {closers.map(c => (
@@ -202,13 +245,19 @@ export default function AdminClosersPageClient({
                   {c.full_name && (
                     <span className="text-white/50 text-sm">{c.email}</span>
                   )}
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c.role === 'admin' ? 'bg-amber-500/20 text-amber-400' : 'bg-white/10 text-white/70'}`}>
-                    {c.role === 'admin' ? 'Admin' : 'Closer'}
-                  </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select
+                    value={c.role === 'admin' ? 'admin' : 'closer'}
+                    onChange={e => handleRoleChange(c.id, e.target.value as 'closer' | 'admin')}
+                    disabled={roleChangingId === c.id}
+                    className="px-2 py-1.5 text-xs font-medium rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/30 disabled:opacity-50"
+                  >
+                    <option value="closer" className="bg-zinc-900">Closer</option>
+                    <option value="admin" className="bg-zinc-900">Admin</option>
+                  </select>
                   <span className="text-white/40 text-xs">
-                    Créé le {format(new Date(c.created_at), 'd MMM yyyy', { locale: fr })}
+                    {format(new Date(c.created_at), 'd MMM yyyy', { locale: fr })}
                   </span>
                   <button
                     type="button"
@@ -275,6 +324,17 @@ export default function AdminClosersPageClient({
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
                   placeholder="6 caractères minimum"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1.5">Rôle</label>
+                <select
+                  value={editRole}
+                  onChange={e => setEditRole(e.target.value as 'closer' | 'admin')}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+                >
+                  <option value="closer" className="bg-zinc-900">Closer</option>
+                  <option value="admin" className="bg-zinc-900">Admin</option>
+                </select>
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button
