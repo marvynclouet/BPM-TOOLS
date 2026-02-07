@@ -1,13 +1,34 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUser } from '@/lib/auth'
-import { format } from 'date-fns'
+import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns'
 import { fr } from 'date-fns/locale/fr'
 import AdminClosersStats from '@/components/dashboard/AdminClosersStats'
 import type { CloserStat } from '@/components/dashboard/AdminClosersStats'
+import PeriodSelector from '@/components/shared/PeriodSelector'
+import AdminClosersPageClient from '@/components/admin/AdminClosersPageClient'
 
-export default async function MonEspacePage() {
+type PageProps = { searchParams: { from?: string; to?: string } }
+
+export default async function MonEspacePage({ searchParams = {} }: PageProps) {
+  const fromParam = searchParams?.from
+  const toParam = searchParams?.to
+
+  let dateFromISO: string | null = null
+  let dateToISO: string | null = null
+  if (fromParam && toParam) {
+    try {
+      const dFrom = new Date(fromParam)
+      const dTo = new Date(toParam)
+      if (!isNaN(dFrom.getTime()) && !isNaN(dTo.getTime())) {
+        dateFromISO = startOfDay(dFrom).toISOString()
+        dateToISO = endOfDay(dTo).toISOString()
+      }
+    } catch (_) {}
+  }
+
   const supabase = await createClient()
   
   // Vérifier si connecté
@@ -29,7 +50,7 @@ export default async function MonEspacePage() {
   // Pour les admins : récupérer les stats de tous les closers (qui a vendu quoi, commissions)
   let closersStats: CloserStat[] = []
   if (isAdmin) {
-    const { data: allEntries } = await adminClient
+    let entriesQuery = adminClient
       .from('accounting_entries')
       .select(`
         id,
@@ -46,6 +67,9 @@ export default async function MonEspacePage() {
         )
       `)
       .order('created_at', { ascending: false })
+    if (dateFromISO) entriesQuery = entriesQuery.gte('created_at', dateFromISO)
+    if (dateToISO) entriesQuery = entriesQuery.lte('created_at', dateToISO)
+    const { data: allEntries } = await entriesQuery
 
     const closerIds = [...new Set((allEntries || []).map((e: any) => e.leads?.closer_id).filter(Boolean))]
     const { data: usersData } = await adminClient
@@ -92,6 +116,23 @@ export default async function MonEspacePage() {
     closersStats = Object.values(byCloser).sort((a, b) => b.totalCA - a.totalCA)
   }
 
+  // Pour les admins : liste des closers (role closer OU admin, pour afficher Marvyn, Manu, etc.)
+  let closersList: { id: string; email: string; full_name: string | null; created_at: string; role: string }[] = []
+  if (isAdmin) {
+    const { data: closersData } = await adminClient
+      .from('users')
+      .select('id, email, full_name, created_at, role')
+      .in('role', ['closer', 'admin'])
+      .order('full_name', { ascending: true, nullsFirst: false })
+    closersList = (closersData || []).map((u: any) => ({
+      id: u.id,
+      email: u.email,
+      full_name: u.full_name ?? null,
+      created_at: u.created_at,
+      role: u.role || 'closer',
+    }))
+  }
+
   // Récupérer tous les leads assignés à l'utilisateur connecté
   const { data: myLeads } = await adminClient
     .from('leads')
@@ -104,12 +145,14 @@ export default async function MonEspacePage() {
   let mySales: any[] = []
 
   if (myLeadIds.length > 0) {
-    const { data: accountingEntries } = await adminClient
+    let salesQuery = adminClient
       .from('accounting_entries')
       .select('*, leads:lead_id(id, first_name, last_name, formation, price_fixed)')
       .in('lead_id', myLeadIds)
       .order('created_at', { ascending: false })
-
+    if (dateFromISO) salesQuery = salesQuery.gte('created_at', dateFromISO)
+    if (dateToISO) salesQuery = salesQuery.lte('created_at', dateToISO)
+    const { data: accountingEntries } = await salesQuery
     mySales = accountingEntries || []
   }
 
@@ -119,29 +162,52 @@ export default async function MonEspacePage() {
   const totalSales = mySales.length
   const closedLeads = myLeads?.filter(l => l.status === 'clos' || l.status === 'acompte_regle').length || 0
 
-  // Statistiques par mois (12 derniers mois)
-  const monthlyStats = []
+  // Statistiques par mois : si période choisie, uniquement les mois dans la période ; sinon 12 derniers mois
+  const monthlyStats: { month: string; monthYear: string; ca: number; commissions: number; sales: number }[] = []
   const now = new Date()
-  for (let i = 0; i < 12; i++) {
-    const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const monthYear = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`
-    
-    const monthSales = mySales.filter(sale => {
-      const saleDate = new Date(sale.created_at)
-      const saleMonth = `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, '0')}`
-      return saleMonth === monthYear
-    })
+  const periodStart = dateFromISO ? new Date(dateFromISO) : null
+  const periodEnd = dateToISO ? new Date(dateToISO) : null
 
-    const monthCA = monthSales.reduce((sum, sale) => sum + Number(sale.amount || 0), 0)
-    const monthCommissions = monthSales.reduce((sum, sale) => sum + Number(sale.commission_closer || 0), 0)
-
-    monthlyStats.push({
-      month: monthDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
-      monthYear,
-      ca: monthCA,
-      commissions: monthCommissions,
-      sales: monthSales.length,
-    })
+  if (periodStart && periodEnd) {
+    const cursor = new Date(periodStart.getFullYear(), periodStart.getMonth(), 1)
+    while (cursor <= periodEnd) {
+      const monthStart = startOfMonth(cursor)
+      const monthEnd = endOfMonth(cursor)
+      const monthYear = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`
+      const monthSales = mySales.filter(sale => {
+        const saleDate = new Date(sale.created_at)
+        return isWithinInterval(saleDate, { start: monthStart, end: monthEnd })
+      })
+      const monthCA = monthSales.reduce((sum, sale) => sum + Number(sale.amount || 0), 0)
+      const monthCommissions = monthSales.reduce((sum, sale) => sum + Number(sale.commission_closer || 0), 0)
+      monthlyStats.push({
+        month: monthStart.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+        monthYear,
+        ca: monthCA,
+        commissions: monthCommissions,
+        sales: monthSales.length,
+      })
+      cursor.setMonth(cursor.getMonth() + 1)
+    }
+  } else {
+    for (let i = 0; i < 12; i++) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const monthYear = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`
+      const monthSales = mySales.filter(sale => {
+        const saleDate = new Date(sale.created_at)
+        const saleMonth = `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, '0')}`
+        return saleMonth === monthYear
+      })
+      const monthCA = monthSales.reduce((sum, sale) => sum + Number(sale.amount || 0), 0)
+      const monthCommissions = monthSales.reduce((sum, sale) => sum + Number(sale.commission_closer || 0), 0)
+      monthlyStats.push({
+        month: monthDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+        monthYear,
+        ca: monthCA,
+        commissions: monthCommissions,
+        sales: monthSales.length,
+      })
+    }
   }
 
   return (
@@ -151,6 +217,16 @@ export default async function MonEspacePage() {
         <p className="text-white/50 text-sm sm:text-base lg:text-lg">
           Vos ventes et statistiques personnelles
         </p>
+      </div>
+
+      <div className="apple-card rounded-xl p-4 sm:p-5">
+        <Suspense fallback={<div className="h-14 rounded-xl bg-white/5 animate-pulse" />}>
+          <PeriodSelector
+            label="Filtrer par période"
+            initialFrom={fromParam ?? null}
+            initialTo={toParam ?? null}
+          />
+        </Suspense>
       </div>
 
       {/* Statistiques globales */}
@@ -355,6 +431,13 @@ export default async function MonEspacePage() {
       {isAdmin && (
         <div className="pt-6 sm:pt-8 border-t border-white/10">
           <AdminClosersStats closersStats={closersStats} />
+        </div>
+      )}
+
+      {/* Section admin : créer des closers + liste (closers et admins) */}
+      {isAdmin && (
+        <div className="pt-6 sm:pt-8 border-t border-white/10">
+          <AdminClosersPageClient closers={closersList} />
         </div>
       )}
     </div>

@@ -1,12 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Lead, UserRole } from '@/types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale/fr'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import LeadDetailModal from './LeadDetailModal'
+
+const SCROLL_ZONE = 100
+const SCROLL_SPEED = 12
 
 interface Closer {
   id: string
@@ -31,6 +34,36 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
   const [draggedLead, setDraggedLead] = useState<string | null>(null)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [mobileMoveLead, setMobileMoveLead] = useState<Lead | null>(null)
+  const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null)
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const dragPositionRef = useRef({ x: 0, y: 0 })
+  const scrollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Auto-scroll horizontal quand on tire une carte vers les bords
+  useEffect(() => {
+    if (!draggedLead || !scrollContainerRef.current) return
+
+    const el = scrollContainerRef.current
+    const tick = () => {
+      const { x } = dragPositionRef.current
+      const rect = el.getBoundingClientRect()
+      const leftEdge = rect.left + SCROLL_ZONE
+      const rightEdge = rect.right - SCROLL_ZONE
+      if (x < leftEdge) {
+        el.scrollBy({ left: -SCROLL_SPEED, behavior: 'auto' })
+      } else if (x > rightEdge) {
+        el.scrollBy({ left: SCROLL_SPEED, behavior: 'auto' })
+      }
+    }
+    scrollIntervalRef.current = setInterval(tick, 16)
+    return () => {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current)
+        scrollIntervalRef.current = null
+      }
+    }
+  }, [draggedLead])
 
   const formationLabels: Record<string, string> = {
     inge_son: 'Ingé son',
@@ -113,12 +146,29 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
     }
   }
 
-  const handleDragStart = (leadId: string) => {
+  const handleDragStart = (e: React.DragEvent, leadId: string) => {
     setDraggedLead(leadId)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', leadId)
   }
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleScrollContainerDragOver = (e: React.DragEvent) => {
+    dragPositionRef.current = { x: e.clientX, y: e.clientY }
+  }
+
+  const handleColumnDragOver = (e: React.DragEvent, columnId: string) => {
     e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverColumnId(columnId)
+  }
+
+  const handleColumnDragLeave = () => {
+    setDragOverColumnId(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedLead(null)
+    setDragOverColumnId(null)
   }
 
   const handleDrop = async (targetCloserId: string | 'nouveau' | 'ko' | 'clos', leadId?: string) => {
@@ -173,16 +223,27 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
       alert('Erreur: ' + error.message)
     } finally {
       setDraggedLead(null)
+      setDragOverColumnId(null)
     }
   }
 
   return (
     <>
-      <div className="hidden lg:flex gap-4 overflow-x-auto pb-4">
+      <div
+        ref={scrollContainerRef}
+        onDragOver={handleScrollContainerDragOver}
+        className="hidden lg:flex gap-4 overflow-x-auto overflow-y-hidden pb-4 scroll-smooth scrollbar-thin"
+        style={{ scrollBehavior: 'auto' }}
+      >
         {/* Colonne Nouveau (non assignés) */}
         <div
-          className="flex-shrink-0 w-80 bg-blue-500/10 rounded-xl p-4 border border-white/10"
-          onDragOver={handleDragOver}
+          className={`flex-shrink-0 w-80 rounded-xl p-4 border-2 transition-all duration-150 min-h-[280px] ${
+            dragOverColumnId === 'nouveau'
+              ? 'bg-blue-500/25 border-blue-400/60 ring-2 ring-blue-400/40'
+              : 'bg-blue-500/10 border-white/10'
+          }`}
+          onDragOver={(e) => handleColumnDragOver(e, 'nouveau')}
+          onDragLeave={handleColumnDragLeave}
           onDrop={() => handleDrop('nouveau')}
         >
           <div className="flex items-center gap-2 mb-4">
@@ -202,12 +263,13 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
                 getCardColor={getCardColor}
                 getStatusEmoji={getStatusEmoji}
                 draggedLead={draggedLead}
-                onDragStart={handleDragStart}
+                onDragStart={(e) => handleDragStart(e, lead.id)}
+                onDragEnd={handleDragEnd}
                 onClick={() => setSelectedLead(lead)}
               />
             ))}
             {getLeadsForColumn('nouveau').length === 0 && (
-              <div className="text-center text-white/30 text-sm py-8">Aucun lead</div>
+              <div className="text-center text-white/30 text-sm py-8 min-h-[120px] flex items-center justify-center">Aucun lead</div>
             )}
           </div>
         </div>
@@ -219,8 +281,13 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
             return (
               <div
                 key={closer.id}
-                className="flex-shrink-0 w-80 bg-white/5 rounded-xl p-4 border border-white/10"
-                onDragOver={handleDragOver}
+                className={`flex-shrink-0 w-80 rounded-xl p-4 border-2 transition-all duration-150 min-h-[280px] ${
+                  dragOverColumnId === closer.id
+                    ? 'bg-white/15 border-white/40 ring-2 ring-white/30'
+                    : 'bg-white/5 border-white/10'
+                }`}
+                onDragOver={(e) => handleColumnDragOver(e, closer.id)}
+                onDragLeave={handleColumnDragLeave}
                 onDrop={() => handleDrop(closer.id)}
               >
                 <div className="flex items-center gap-2 mb-4">
@@ -242,12 +309,13 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
                       getCardColor={getCardColor}
                       getStatusEmoji={getStatusEmoji}
                       draggedLead={draggedLead}
-                      onDragStart={handleDragStart}
+                      onDragStart={(e) => handleDragStart(e, lead.id)}
+                      onDragEnd={handleDragEnd}
                       onClick={() => setSelectedLead(lead)}
                     />
                   ))}
                   {columnLeads.length === 0 && (
-                    <div className="text-center text-white/30 text-sm py-8">Aucun lead</div>
+                    <div className="text-center text-white/30 text-sm py-8 min-h-[120px] flex items-center justify-center">Aucun lead</div>
                   )}
                 </div>
               </div>
@@ -257,8 +325,11 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
           // Si aucun closer n'est trouvé mais que l'utilisateur connecté est un closer, afficher sa colonne
           currentUser && currentUser.role === 'closer' && (
             <div
-              className="flex-shrink-0 w-80 bg-white/5 rounded-xl p-4 border border-white/10"
-              onDragOver={handleDragOver}
+              className={`flex-shrink-0 w-80 rounded-xl p-4 border-2 transition-all duration-150 min-h-[280px] ${
+                dragOverColumnId === currentUser.id ? 'bg-white/15 border-white/40 ring-2 ring-white/30' : 'bg-white/5 border-white/10'
+              }`}
+              onDragOver={(e) => handleColumnDragOver(e, currentUser.id)}
+              onDragLeave={handleColumnDragLeave}
               onDrop={() => handleDrop(currentUser.id)}
             >
               <div className="flex items-center gap-2 mb-4">
@@ -294,8 +365,11 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
 
         {/* Colonne Clos */}
         <div
-          className="flex-shrink-0 w-80 bg-green-500/10 rounded-xl p-4 border border-white/10"
-          onDragOver={handleDragOver}
+          className={`flex-shrink-0 w-80 rounded-xl p-4 border-2 transition-all duration-150 min-h-[280px] ${
+            dragOverColumnId === 'clos' ? 'bg-green-500/25 border-green-400/60 ring-2 ring-green-400/40' : 'bg-green-500/10 border-white/10'
+          }`}
+          onDragOver={(e) => handleColumnDragOver(e, 'clos')}
+          onDragLeave={handleColumnDragLeave}
           onDrop={() => handleDrop('clos')}
         >
           <div className="flex items-center gap-2 mb-4">
@@ -315,20 +389,24 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
                 getCardColor={getCardColor}
                 getStatusEmoji={getStatusEmoji}
                 draggedLead={draggedLead}
-                onDragStart={handleDragStart}
+                onDragStart={(e) => handleDragStart(e, lead.id)}
+                onDragEnd={handleDragEnd}
                 onClick={() => setSelectedLead(lead)}
               />
             ))}
             {getLeadsForColumn('clos').length === 0 && (
-              <div className="text-center text-white/30 text-sm py-8">Aucun lead</div>
+              <div className="text-center text-white/30 text-sm py-8 min-h-[120px] flex items-center justify-center">Aucun lead</div>
             )}
           </div>
         </div>
 
         {/* Colonne KO */}
         <div
-          className="flex-shrink-0 w-80 bg-red-500/10 rounded-xl p-4 border border-white/10"
-          onDragOver={handleDragOver}
+          className={`flex-shrink-0 w-80 rounded-xl p-4 border-2 transition-all duration-150 min-h-[280px] ${
+            dragOverColumnId === 'ko' ? 'bg-red-500/25 border-red-400/60 ring-2 ring-red-400/40' : 'bg-red-500/10 border-white/10'
+          }`}
+          onDragOver={(e) => handleColumnDragOver(e, 'ko')}
+          onDragLeave={handleColumnDragLeave}
           onDrop={() => handleDrop('ko')}
         >
           <div className="flex items-center gap-2 mb-4">
@@ -348,12 +426,13 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
                 getCardColor={getCardColor}
                 getStatusEmoji={getStatusEmoji}
                 draggedLead={draggedLead}
-                onDragStart={handleDragStart}
+                onDragStart={(e) => handleDragStart(e, lead.id)}
+                onDragEnd={handleDragEnd}
                 onClick={() => setSelectedLead(lead)}
               />
             ))}
             {getLeadsForColumn('ko').length === 0 && (
-              <div className="text-center text-white/30 text-sm py-8">Aucun lead</div>
+              <div className="text-center text-white/30 text-sm py-8 min-h-[120px] flex items-center justify-center">Aucun lead</div>
             )}
           </div>
         </div>
@@ -621,6 +700,7 @@ function LeadCard({
   getStatusEmoji,
   draggedLead,
   onDragStart,
+  onDragEnd,
   onClick,
 }: {
   lead: Lead & { users?: { full_name: string | null; email: string } | null }
@@ -629,16 +709,18 @@ function LeadCard({
   getCardColor: (status: Lead['status']) => string
   getStatusEmoji: (status: Lead['status']) => string
   draggedLead: string | null
-  onDragStart: (leadId: string) => void
+  onDragStart: (e: React.DragEvent, leadId: string) => void
+  onDragEnd: () => void
   onClick: () => void
 }) {
   return (
     <div
       draggable
-      onDragStart={() => onDragStart(lead.id)}
+      onDragStart={(e) => onDragStart(e, lead.id)}
+      onDragEnd={onDragEnd}
       onClick={onClick}
-      className={`rounded-lg p-4 cursor-move hover:scale-[1.02] transition-all border ${getCardColor(lead.status)} ${
-        draggedLead === lead.id ? 'opacity-50' : ''
+      className={`rounded-lg p-4 cursor-grab active:cursor-grabbing hover:scale-[1.02] transition-all border ${getCardColor(lead.status)} ${
+        draggedLead === lead.id ? 'opacity-50 scale-95' : ''
       }`}
     >
       {/* Statut avec emoji */}

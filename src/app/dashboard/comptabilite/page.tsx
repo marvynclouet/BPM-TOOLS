@@ -1,10 +1,18 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUser } from '@/lib/auth'
+import { startOfDay, endOfDay } from 'date-fns'
 import AccountingTable from '@/components/comptabilite/AccountingTable'
+import PeriodSelector from '@/components/shared/PeriodSelector'
 
-export default async function ComptabilitePage() {
+type PageProps = { searchParams: { from?: string; to?: string } }
+
+export default async function ComptabilitePage({ searchParams = {} }: PageProps) {
+  const fromParam = searchParams?.from
+  const toParam = searchParams?.to
+
   const supabase = await createClient()
   
   // Vérifier si connecté
@@ -22,6 +30,20 @@ export default async function ComptabilitePage() {
     redirect('/dashboard')
   }
 
+  // Période : bornes ISO pour Supabase
+  let dateFromISO: string | null = null
+  let dateToISO: string | null = null
+  if (fromParam && toParam) {
+    try {
+      const dFrom = new Date(fromParam)
+      const dTo = new Date(toParam)
+      if (!isNaN(dFrom.getTime()) && !isNaN(dTo.getTime())) {
+        dateFromISO = startOfDay(dFrom).toISOString()
+        dateToISO = endOfDay(dTo).toISOString()
+      }
+    } catch (_) {}
+  }
+
   // Utiliser le client admin pour bypasser RLS
   let entries: any[] = []
   let error: any = null
@@ -29,11 +51,15 @@ export default async function ComptabilitePage() {
   try {
     const adminClient = createAdminClient()
 
-    // Récupérer les entrées comptables
-    const { data, error: fetchError } = await adminClient
+    let query = adminClient
       .from('accounting_entries')
       .select('*')
       .order('created_at', { ascending: false })
+
+    if (dateFromISO) query = query.gte('created_at', dateFromISO)
+    if (dateToISO) query = query.lte('created_at', dateToISO)
+
+    const { data, error: fetchError } = await query
 
     if (fetchError) {
       error = fetchError
@@ -74,6 +100,16 @@ export default async function ComptabilitePage() {
         <button className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 apple-card rounded-xl text-sm sm:text-base font-semibold hover:bg-white/10 transition-all">
           Exporter CSV
         </button>
+      </div>
+
+      <div className="apple-card rounded-xl p-4 sm:p-5 mb-4 sm:mb-6">
+        <Suspense fallback={<div className="h-14 rounded-xl bg-white/5 animate-pulse" />}>
+          <PeriodSelector
+            label="Filtrer par période"
+            initialFrom={fromParam ?? null}
+            initialTo={toParam ?? null}
+          />
+        </Suspense>
       </div>
 
       {error ? (

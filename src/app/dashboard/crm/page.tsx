@@ -24,11 +24,11 @@ export default async function CRMPage() {
     .select('*, users:closer_id(full_name, email)')
     .order('created_at', { ascending: false })
 
-  // Récupérer tous les closers (avec rôle closer)
+  // Récupérer tous les closers (rôle closer ou admin, pour avoir Marvyn, Manu, etc.)
   const { data: closers } = await supabase
     .from('users')
     .select('id, full_name, email')
-    .eq('role', 'closer')
+    .in('role', ['closer', 'admin'])
     .order('full_name')
 
   if (error) {

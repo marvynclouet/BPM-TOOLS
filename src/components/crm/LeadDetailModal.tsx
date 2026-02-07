@@ -35,9 +35,12 @@ export default function LeadDetailModal({ lead, currentUser, onClose }: LeadDeta
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [newComment, setNewComment] = useState('')
   const [comments, setComments] = useState<Comment[]>([])
   const [loadingComments, setLoadingComments] = useState(true)
+  const isAdmin = currentUser?.role === 'admin'
   
   const [editValues, setEditValues] = useState({
     first_name: lead.first_name,
@@ -189,6 +192,25 @@ export default function LeadDetailModal({ lead, currentUser, onClose }: LeadDeta
       alert('Erreur: ' + error.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDeleteLead = async () => {
+    if (!isAdmin || deleting) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/leads/${lead.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Erreur lors de la suppression')
+      }
+      setShowDeleteConfirm(false)
+      onClose()
+      router.refresh()
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Erreur lors de la suppression')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -580,23 +602,70 @@ export default function LeadDetailModal({ lead, currentUser, onClose }: LeadDeta
         </div>
 
         {/* Footer */}
-        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 p-4 sm:p-6 border-t border-white/10 flex-shrink-0">
-          <button
-            onClick={onClose}
-            disabled={saving}
-            className="px-4 sm:px-6 py-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg text-white hover:bg-white/10 transition disabled:opacity-50 text-sm sm:text-base"
-          >
-            Annuler
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-4 sm:px-6 py-2 bg-white text-black rounded-lg font-medium hover:bg-white/90 transition disabled:opacity-50 shadow-lg text-sm sm:text-base"
-          >
-            {saving ? 'Sauvegarde...' : 'Enregistrer'}
-          </button>
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 sm:gap-3 p-4 sm:p-6 border-t border-white/10 flex-shrink-0">
+          <div className="flex order-2 sm:order-1">
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={saving || deleting}
+                className="px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/30 rounded-lg transition disabled:opacity-50 text-sm"
+              >
+                🗑️ Supprimer le lead (toute trace)
+              </button>
+            )}
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 order-1 sm:order-2">
+            <button
+              onClick={onClose}
+              disabled={saving}
+              className="px-4 sm:px-6 py-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg text-white hover:bg-white/10 transition disabled:opacity-50 text-sm sm:text-base"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-4 sm:px-6 py-2 bg-white text-black rounded-lg font-medium hover:bg-white/90 transition disabled:opacity-50 shadow-lg text-sm sm:text-base"
+            >
+              {saving ? 'Sauvegarde...' : 'Enregistrer'}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Confirmation suppression */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4" onClick={() => !deleting && setShowDeleteConfirm(false)}>
+          <div
+            className="bg-[#1a1a1a] rounded-2xl p-6 max-w-md w-full border border-white/20 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-white mb-2">Supprimer ce lead ?</h3>
+            <p className="text-white/70 text-sm mb-6">
+              Le lead <strong>{lead.first_name} {lead.last_name}</strong> et toutes les données associées seront supprimés définitivement : ventes, paiements, commentaires, documents, planning. Cette action est irréversible.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => !deleting && setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white hover:bg-white/10 transition disabled:opacity-50 text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteLead}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition disabled:opacity-50 text-sm"
+              >
+                {deleting ? 'Suppression...' : 'Supprimer définitivement'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
