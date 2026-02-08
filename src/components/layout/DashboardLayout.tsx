@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
+import DemoBanner from '@/components/shared/DemoBanner'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -69,6 +70,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white">
+      <DemoBanner />
       <nav className={`border-b border-white/5 backdrop-blur-xl bg-[#1a1a1a]/80 sticky top-0 z-50 transition-transform duration-300 ${
         isNavbarVisible ? 'translate-y-0' : '-translate-y-full'
       }`}>
