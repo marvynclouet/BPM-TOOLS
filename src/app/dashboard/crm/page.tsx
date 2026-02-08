@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth'
 import { getDemoLeads, getDemoClosers, getDemoUser, isDemoMode } from '@/lib/demo-data'
+import type { Lead } from '@/types'
 import CRMTable from '@/components/crm/CRMTable'
 
 export default async function CRMPage() {
@@ -21,7 +22,7 @@ export default async function CRMPage() {
         </div>
         <CRMTable
           isDemo
-          leads={leads}
+          leads={leads as (Lead & { users?: { full_name: string | null; email: string } | null })[]}
           closers={closers}
           currentUser={{ id: demoUser.id, role: demoUser.role, full_name: demoUser.full_name, email: demoUser.email }}
         />

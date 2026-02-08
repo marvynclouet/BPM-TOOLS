@@ -51,7 +51,7 @@ export async function PATCH(request: NextRequest, context: Context) {
     const authUpdate: { email?: string; password?: string; user_metadata?: { full_name?: string } } = {}
     if (email !== undefined) authUpdate.email = email
     if (password !== undefined && password.length >= 6) authUpdate.password = password
-    if (full_name !== undefined) authUpdate.user_metadata = { full_name }
+    if (full_name !== undefined) authUpdate.user_metadata = { full_name: full_name ?? undefined }
 
     if (Object.keys(authUpdate).length > 0) {
       const { error: authError } = await adminClient.auth.admin.updateUserById(userId, authUpdate)

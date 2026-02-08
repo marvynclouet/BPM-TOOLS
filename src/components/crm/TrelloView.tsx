@@ -360,6 +360,7 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
                     getStatusEmoji={getStatusEmoji}
                     draggedLead={draggedLead}
                     onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
                     onClick={() => setSelectedLead(lead)}
                   />
                 ))}

@@ -17,7 +17,7 @@ export default async function GestionPage() {
     getDemoClosers().forEach(c => { closersMap[c.id] = { full_name: c.full_name, email: c.email } })
     const hotLeads = demoLeads.filter(l =>
       l.closer_id === demoUser.id &&
-      (l.interest_level === 'chaud' || l.status === 'en_cours_de_closing' || l.status === 'acompte_en_cours')
+      ((l as { interest_level?: string }).interest_level === 'chaud' || l.status === 'en_cours_de_closing' || (l as { status: string }).status === 'acompte_en_cours')
     )
     const closedLeads = demoLeads.filter(l => l.status === 'clos')
     const hotLeadsWithPlanning = hotLeads.map(lead => ({ ...lead, planning: [] }))
@@ -41,7 +41,7 @@ export default async function GestionPage() {
             </span>
           </div>
           <p className="text-white/50 text-xs sm:text-sm">Leads chauds, en cours de closing et acompte en cours - Ouvrez des conversations WhatsApp</p>
-          <GestionTable leads={hotLeadsWithPlanning} showWhatsAppGroup={true} showDocuments={false} />
+          <GestionTable leads={hotLeadsWithPlanning as any} showWhatsAppGroup={true} showDocuments={false} />
         </div>
         <div className="space-y-3 sm:space-y-4">
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
@@ -51,7 +51,7 @@ export default async function GestionPage() {
             </span>
           </div>
           <p className="text-white/50 text-xs sm:text-sm">Générer et envoyer les documents (attestation et facture)</p>
-          <GestionTable leads={closedLeadsWithPlanning} showWhatsAppGroup={false} showDocuments={true} />
+          <GestionTable leads={closedLeadsWithPlanning as any} showWhatsAppGroup={false} showDocuments={true} />
         </div>
       </div>
     )
@@ -158,8 +158,8 @@ export default async function GestionPage() {
           </span>
         </div>
         <p className="text-white/50 text-xs sm:text-sm">Leads chauds, en cours de closing et acompte en cours - Ouvrez des conversations WhatsApp</p>
-        <GestionTable 
-          leads={hotLeadsWithPlanning} 
+          <GestionTable
+          leads={hotLeadsWithPlanning as any}
           showWhatsAppGroup={true}
           showDocuments={false}
         />
@@ -174,8 +174,8 @@ export default async function GestionPage() {
           </span>
         </div>
         <p className="text-white/50 text-xs sm:text-sm">Générer et envoyer les documents (attestation et facture)</p>
-        <GestionTable 
-          leads={closedLeadsWithPlanning} 
+          <GestionTable
+          leads={closedLeadsWithPlanning as any}
           showWhatsAppGroup={false}
           showDocuments={true}
         />
