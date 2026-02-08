@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUser } from '@/lib/auth'
@@ -9,10 +10,124 @@ import AdminClosersStats from '@/components/dashboard/AdminClosersStats'
 import type { CloserStat } from '@/components/dashboard/AdminClosersStats'
 import PeriodSelector from '@/components/shared/PeriodSelector'
 import AdminClosersPageClient from '@/components/admin/AdminClosersPageClient'
+import { isDemoMode, getDemoLeads, getDemoUser, getDemoClosersList } from '@/lib/demo-data'
 
 type PageProps = { searchParams: { from?: string; to?: string } }
 
 export default async function MonEspacePage({ searchParams = {} }: PageProps) {
+  const cookieStore = await cookies()
+  const demoSession = cookieStore.get('demo_session')?.value === '1'
+  if (isDemoMode() && demoSession) {
+    const demoUser = getDemoUser()
+    const demoLeads = getDemoLeads()
+    const myLeads = demoLeads.filter(l => l.closer_id === demoUser.id)
+    const closedLeadsCount = myLeads.filter(l => l.status === 'clos' || l.status === 'acompte_regle').length
+    const totalCA = 0
+    const totalCommissions = 0
+    const totalSales = 0
+    const mySales: any[] = []
+    const closersStats: CloserStat[] = []
+    const closersList = getDemoClosersList().map(c => ({
+      id: c.id,
+      email: c.email,
+      full_name: c.full_name,
+      created_at: c.created_at,
+      role: c.role,
+    }))
+    const now = new Date()
+    const monthlyStats = Array.from({ length: 12 }, (_, i) => {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      return {
+        month: monthDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+        monthYear: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`,
+        ca: 0,
+        commissions: 0,
+        sales: 0,
+      }
+    })
+    return (
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8 pb-8 sm:pb-12">
+        <div className="space-y-1 sm:space-y-2">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight">Mon Espace</h1>
+          <p className="text-white/50 text-sm sm:text-base lg:text-lg">Vos ventes et statistiques personnelles</p>
+        </div>
+        <div className="apple-card rounded-xl p-4 sm:p-5">
+          <Suspense fallback={<div className="h-14 rounded-xl bg-white/5 animate-pulse" />}>
+            <PeriodSelector label="Filtrer par période" initialFrom={null} initialTo={null} />
+          </Suspense>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+          <div className="apple-card rounded-xl sm:rounded-2xl p-4 sm:p-6">
+            <div className="text-xs sm:text-sm text-white/60 mb-1 sm:mb-2 font-medium">CA Total</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight">{totalCA.toFixed(2)} €</div>
+          </div>
+          <div className="apple-card rounded-xl sm:rounded-2xl p-4 sm:p-6">
+            <div className="text-xs sm:text-sm text-white/60 mb-1 sm:mb-2 font-medium">Commissions</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight">{totalCommissions.toFixed(2)} €</div>
+          </div>
+          <div className="apple-card rounded-xl sm:rounded-2xl p-4 sm:p-6">
+            <div className="text-xs sm:text-sm text-white/60 mb-1 sm:mb-2 font-medium">Nombre de ventes</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight">{totalSales}</div>
+          </div>
+          <div className="apple-card rounded-xl sm:rounded-2xl p-4 sm:p-6">
+            <div className="text-xs sm:text-sm text-white/60 mb-1 sm:mb-2 font-medium">Leads closés</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight">{closedLeadsCount}</div>
+          </div>
+        </div>
+        <div className="apple-card rounded-xl sm:rounded-2xl p-4 sm:p-6">
+          <h2 className="text-xl sm:text-2xl font-semibold text-white mb-4 sm:mb-6">Statistiques par mois</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-white/60 uppercase">Mois</th>
+                  <th className="px-4 py-3 text-right text-sm font-semibold text-white/60 uppercase">CA</th>
+                  <th className="px-4 py-3 text-right text-sm font-semibold text-white/60 uppercase">Commissions</th>
+                  <th className="px-4 py-3 text-right text-sm font-semibold text-white/60 uppercase">Ventes</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {monthlyStats.map((stat, idx) => (
+                  <tr key={idx} className="hover:bg-white/5 transition-colors">
+                    <td className="px-4 py-3 text-white font-medium">{stat.month.charAt(0).toUpperCase() + stat.month.slice(1)}</td>
+                    <td className="px-4 py-3 text-right text-white">{stat.ca.toFixed(2)} €</td>
+                    <td className="px-4 py-3 text-right text-white">{stat.commissions.toFixed(2)} €</td>
+                    <td className="px-4 py-3 text-right text-white">{stat.sales}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="lg:hidden space-y-3 mt-4">
+            {monthlyStats.slice(0, 3).map((stat, idx) => (
+              <div key={idx} className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <h3 className="text-base font-semibold text-white mb-3">{stat.month.charAt(0).toUpperCase() + stat.month.slice(1)}</h3>
+                <div className="grid grid-cols-3 gap-3 text-sm">
+                  <div><div className="text-white/50 text-xs mb-1">CA</div><div className="text-white font-semibold">{stat.ca.toFixed(2)} €</div></div>
+                  <div><div className="text-white/50 text-xs mb-1">Commissions</div><div className="text-green-400 font-semibold">{stat.commissions.toFixed(2)} €</div></div>
+                  <div><div className="text-white/50 text-xs mb-1">Ventes</div><div className="text-white font-semibold">{stat.sales}</div></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="apple-card rounded-2xl p-4 sm:p-6">
+          <h2 className="text-xl sm:text-2xl font-semibold text-white mb-4 sm:mb-6">Détail de mes ventes</h2>
+          <div className="text-center py-8 sm:py-12">
+            <p className="text-white/50 text-base sm:text-lg">Aucune vente enregistrée</p>
+            <p className="text-white/30 text-xs sm:text-sm mt-2">Mode démo – les ventes apparaîtraient ici une fois des leads clos</p>
+          </div>
+        </div>
+        <div className="pt-6 sm:pt-8 border-t border-white/10">
+          <AdminClosersStats closersStats={closersStats} />
+        </div>
+        <div className="pt-6 sm:pt-8 border-t border-white/10">
+          <AdminClosersPageClient closers={closersList} />
+        </div>
+      </div>
+    )
+  }
+
   const fromParam = searchParams?.from
   const toParam = searchParams?.to
 
@@ -30,8 +145,6 @@ export default async function MonEspacePage({ searchParams = {} }: PageProps) {
   }
 
   const supabase = await createClient()
-  
-  // Vérifier si connecté
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser()

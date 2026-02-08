@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation'
 import CommentModal from './CommentModal'
 import DatePicker from './DatePicker'
 
+const DEMO_MSG = 'Mode démo – les modifications ne sont pas enregistrées.'
+
 interface LeadRowProps {
   lead: Lead & { users?: { full_name: string | null; email: string } | null }
   currentUser: {
@@ -17,9 +19,10 @@ interface LeadRowProps {
     full_name?: string | null
     email?: string
   } | null
+  isDemo?: boolean
 }
 
-export default function LeadRow({ lead, currentUser }: LeadRowProps) {
+export default function LeadRow({ lead, currentUser, isDemo }: LeadRowProps) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
@@ -47,6 +50,10 @@ export default function LeadRow({ lead, currentUser }: LeadRowProps) {
   }, [lead.id])
 
   const loadCommentsCount = async () => {
+    if (isDemo) {
+      setCommentsCount(0)
+      return
+    }
     const { count } = await supabase
       .from('lead_comments')
       .select('*', { count: 'exact', head: true })
@@ -114,6 +121,10 @@ export default function LeadRow({ lead, currentUser }: LeadRowProps) {
 
   const handleFieldSave = async (field: string, value: any) => {
     if (!currentUser?.id) return
+    if (isDemo) {
+      alert(DEMO_MSG)
+      return
+    }
     
     setLoading(true)
     
@@ -246,7 +257,10 @@ export default function LeadRow({ lead, currentUser }: LeadRowProps) {
 
   const handleMarkAsAppele = async () => {
     if (!currentUser?.id) return
-    
+    if (isDemo) {
+      alert(DEMO_MSG)
+      return
+    }
     setLoading(true)
     const { error } = await supabase
       .from('leads')
@@ -268,7 +282,10 @@ export default function LeadRow({ lead, currentUser }: LeadRowProps) {
       alert('Prix acompte non défini')
       return
     }
-
+    if (isDemo) {
+      alert(DEMO_MSG)
+      return
+    }
     setLoading(true)
     try {
       const response = await fetch('/api/leads/mark-payment', {
@@ -298,7 +315,10 @@ export default function LeadRow({ lead, currentUser }: LeadRowProps) {
       alert('Prix fixé non défini')
       return
     }
-
+    if (isDemo) {
+      alert(DEMO_MSG)
+      return
+    }
     setLoading(true)
     try {
       const response = await fetch('/api/leads/mark-payment', {
@@ -325,7 +345,10 @@ export default function LeadRow({ lead, currentUser }: LeadRowProps) {
 
   const handleMarkAsKO = async () => {
     if (!currentUser?.id) return
-    
+    if (isDemo) {
+      alert(DEMO_MSG)
+      return
+    }
     setLoading(true)
     const { error } = await supabase
       .from('leads')
@@ -358,6 +381,7 @@ export default function LeadRow({ lead, currentUser }: LeadRowProps) {
           }}
           currentUserId={currentUser?.id || null}
           currentUserName={currentUser?.full_name || currentUser?.email || null}
+          isDemo={isDemo}
         />
       )}
       <tr data-lead-id={lead.id} className={`transition-colors ${rowBgColors[lead.status] || 'hover:bg-white/5'}`}>

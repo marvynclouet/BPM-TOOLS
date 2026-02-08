@@ -62,11 +62,18 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
+  // Utilisateur connecté via Supabase : supprimer le cookie démo pour éviter le mode démo
+  if (user) {
+    supabaseResponse.cookies.set('demo_session', '', { maxAge: 0, path: '/' })
+  }
+
   // Si l'utilisateur est connecté et essaie d'accéder à /login, rediriger vers /dashboard
   if (user && request.nextUrl.pathname === '/login') {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+    const redirectResponse = NextResponse.redirect(url)
+    redirectResponse.cookies.set('demo_session', '', { maxAge: 0, path: '/' })
+    return redirectResponse
   }
 
   // Si pas d'utilisateur et pas sur une page publique, rediriger vers /login

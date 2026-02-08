@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
@@ -7,19 +8,77 @@ import MiniCalendar from '@/components/dashboard/MiniCalendar'
 import RecentLeads from '@/components/dashboard/RecentLeads'
 import ActivityChart from '@/components/dashboard/ActivityChart'
 import ClosersRanking from '@/components/dashboard/ClosersRanking'
+import { getDemoLeads, isDemoMode } from '@/lib/demo-data'
 
 export default async function DashboardPage() {
+  const cookieStore = await cookies()
+  const demoSession = cookieStore.get('demo_session')?.value === '1'
+
+  if (isDemoMode() && demoSession) {
+    const demoLeads = getDemoLeads()
+    const now = new Date()
+    const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const leads24h = demoLeads.filter(l => new Date(l.created_at) >= last24h).length
+    const leads7d = demoLeads.filter(l => new Date(l.created_at) >= last7d).length
+    const leadsAppeles = demoLeads.filter(l => l.status === 'appele').length
+    const leadsPayes = demoLeads.filter(l => ['clos', 'acompte_regle'].includes(l.status)).length
+    const totalAppeles = demoLeads.filter(l => ['appele', 'acompte_regle', 'clos'].includes(l.status)).length
+    const totalClos = demoLeads.filter(l => l.status === 'clos').length
+    const closingRate = totalAppeles > 0 ? (totalClos / totalAppeles) * 100 : 0
+    const statusCounts: Record<string, number> = {}
+    demoLeads.forEach(l => { statusCounts[l.status] = (statusCounts[l.status] || 0) + 1 })
+    const statusDistribution = [
+      { label: 'Nouveau', value: statusCounts['nouveau'] || 0, color: 'bg-blue-500' },
+      { label: 'Appelé', value: statusCounts['appele'] || 0, color: 'bg-purple-500' },
+      { label: 'Acompte réglé', value: statusCounts['acompte_regle'] || 0, color: 'bg-orange-500' },
+      { label: 'Closé', value: statusCounts['clos'] || 0, color: 'bg-green-500' },
+      { label: 'KO', value: statusCounts['ko'] || 0, color: 'bg-red-500' },
+    ]
+    const recentLeads = [...demoLeads].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 6).map(l => ({
+      id: l.id,
+      first_name: l.first_name,
+      last_name: l.last_name,
+      phone: l.phone,
+      formation: l.formation,
+      status: l.status,
+      created_at: l.created_at,
+    }))
+
+    return (
+      <div className="space-y-3 sm:space-y-4 animate-fade-in pb-4 sm:pb-6">
+        <div className="space-y-1">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-white/50 text-xs sm:text-sm">Vue d&apos;ensemble de l&apos;activité (démo)</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <KPICard title="Nouveaux leads (24h)" value={leads24h} subtitle={`${leads7d} sur 7 jours`} icon="📈" color="blue" />
+          <KPICard title="Appelés" value={leadsAppeles} subtitle="En attente de réponse" icon="💬" color="purple" />
+          <KPICard title="Payés" value={leadsPayes} subtitle="Paiements confirmés" icon="✅" color="green" />
+          <KPICard title="Closing rate" value={`${closingRate.toFixed(1)}%`} subtitle={`${totalClos} / ${totalAppeles}`} icon="📊" color="orange" />
+        </div>
+        <ActivityChart leads={demoLeads.map(l => ({ created_at: l.created_at }))} title="Activité des leads (30 derniers jours)" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <PieChart title="Répartition par statut" data={statusDistribution} />
+          <RecentLeads leads={recentLeads} />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <QuickAccessCard href="/dashboard/crm" title="CRM" description="Gérer les leads et suivre les ventes" icon="👥" />
+          <QuickAccessCard href="/dashboard/comptabilite" title="Comptabilité" description="Voir les ventes et exporter les données" icon="💰" />
+          <QuickAccessCard href="/dashboard/planning" title="Planning" description="Gérer le planning des formations" icon="📅" />
+        </div>
+      </div>
+    )
+  }
+
   try {
     const supabase = await createClient()
-    
-    // Vérifier simplement si connecté
     const {
       data: { user: authUser },
       error: authError,
     } = await supabase.auth.getUser()
 
     if (authError || !authUser) {
-      console.log('❌ Dashboard Page - Auth Error:', authError?.message || 'No user')
       redirect('/login')
     }
 

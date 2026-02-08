@@ -29,13 +29,6 @@ export default async function LoginPage() {
             />
           </div>
           <p className="text-white/50 text-lg font-light">Connectez-vous pour continuer</p>
-          {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
-            <div className="rounded-xl bg-amber-500/15 border border-amber-400/30 p-4 text-left text-sm text-amber-200/90">
-              <p className="font-semibold mb-1">Compte démo</p>
-              <p className="text-white/80">Email : demo@bpm-tools-demo.fr</p>
-              <p className="text-white/80">Mot de passe : Demo123!</p>
-            </div>
-          )}
         </div>
         <LoginForm />
       </div>

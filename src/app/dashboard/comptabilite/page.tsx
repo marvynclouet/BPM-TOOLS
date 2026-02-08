@@ -1,21 +1,52 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUser } from '@/lib/auth'
 import { startOfDay, endOfDay } from 'date-fns'
 import AccountingTable from '@/components/comptabilite/AccountingTable'
 import PeriodSelector from '@/components/shared/PeriodSelector'
+import { isDemoMode } from '@/lib/demo-data'
 
 type PageProps = { searchParams: { from?: string; to?: string } }
 
 export default async function ComptabilitePage({ searchParams = {} }: PageProps) {
+  const cookieStore = await cookies()
+  const demoSession = cookieStore.get('demo_session')?.value === '1'
+  if (isDemoMode() && demoSession) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+          <div className="space-y-1 sm:space-y-2">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight">Comptabilité</h1>
+            <p className="text-white/50 text-sm sm:text-base lg:text-lg">Gestion des ventes et commissions</p>
+          </div>
+          <button className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 apple-card rounded-xl text-sm sm:text-base font-semibold hover:bg-white/10 transition-all">
+            Exporter CSV
+          </button>
+        </div>
+        <div className="apple-card rounded-xl p-4 sm:p-5 mb-4 sm:mb-6">
+          <Suspense fallback={<div className="h-14 rounded-xl bg-white/5 animate-pulse" />}>
+            <PeriodSelector label="Filtrer par période" initialFrom={null} initialTo={null} />
+          </Suspense>
+        </div>
+        <div className="apple-card rounded-2xl p-12">
+          <div className="text-center">
+            <p className="text-white/70 text-xl mb-3 font-semibold">Aucune entrée comptable</p>
+            <p className="text-white/50 text-base mb-6 font-light">
+              Mode démo – les entrées apparaîtraient ici lorsque vous marquez des acomptes ou paiements dans le CRM
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const fromParam = searchParams?.from
   const toParam = searchParams?.to
 
   const supabase = await createClient()
-  
-  // Vérifier si connecté
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser()

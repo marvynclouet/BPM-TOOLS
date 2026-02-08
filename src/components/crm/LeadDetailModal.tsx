@@ -28,9 +28,10 @@ interface LeadDetailModalProps {
     email?: string
   } | null
   onClose: () => void
+  isDemo?: boolean
 }
 
-export default function LeadDetailModal({ lead, currentUser, onClose }: LeadDetailModalProps) {
+export default function LeadDetailModal({ lead, currentUser, onClose, isDemo }: LeadDetailModalProps) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
@@ -64,6 +65,11 @@ export default function LeadDetailModal({ lead, currentUser, onClose }: LeadDeta
 
   const loadComments = async () => {
     setLoadingComments(true)
+    if (isDemo) {
+      setComments([])
+      setLoadingComments(false)
+      return
+    }
     const { data } = await supabase
       .from('lead_comments')
       .select('*, users:user_id(full_name, email)')
@@ -85,7 +91,10 @@ export default function LeadDetailModal({ lead, currentUser, onClose }: LeadDeta
 
   const handleSave = async () => {
     if (!currentUser?.id) return
-
+    if (isDemo) {
+      alert('Mode démo – les modifications ne sont pas enregistrées.')
+      return
+    }
     setSaving(true)
     try {
       // Vérifier si on change le statut vers acompte_regle ou clos
@@ -197,6 +206,10 @@ export default function LeadDetailModal({ lead, currentUser, onClose }: LeadDeta
 
   const handleDeleteLead = async () => {
     if (!isAdmin || deleting) return
+    if (isDemo) {
+      alert('Mode démo – les modifications ne sont pas enregistrées.')
+      return
+    }
     setDeleting(true)
     try {
       const res = await fetch(`/api/leads/${lead.id}`, { method: 'DELETE' })
@@ -219,7 +232,10 @@ export default function LeadDetailModal({ lead, currentUser, onClose }: LeadDeta
       alert('Veuillez saisir un commentaire')
       return
     }
-
+    if (isDemo) {
+      alert('Mode démo – les modifications ne sont pas enregistrées.')
+      return
+    }
     setLoading(true)
     const { error } = await supabase
       .from('lead_comments')

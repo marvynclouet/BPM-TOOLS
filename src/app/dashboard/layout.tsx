@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth'
+import { getDemoUser, isDemoMode } from '@/lib/demo-data'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 
 export default async function DashboardLayoutWrapper({
@@ -8,44 +10,51 @@ export default async function DashboardLayoutWrapper({
 }: {
   children: React.ReactNode
 }) {
+  const supabase = await createClient()
+
+  // Toujours vérifier Supabase en premier : si l'utilisateur est connecté en prod, on l'utilise (pas la démo)
+  let authUser = null
+  let attempts = 0
+  const maxAttempts = 5
+
+  while (!authUser && attempts < maxAttempts) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) {
+      authUser = user
+      break
+    }
+    if (attempts < maxAttempts - 1) {
+      await new Promise(resolve => setTimeout(resolve, 300))
+    }
+    attempts++
+  }
+
+  // Pas de session Supabase : utiliser la démo uniquement si mode démo + cookie démo
+  if (!authUser) {
+    const cookieStore = await cookies()
+    const demoSession = cookieStore.get('demo_session')?.value === '1'
+    if (isDemoMode() && demoSession) {
+      const demoUser = getDemoUser()
+      return (
+        <DashboardLayout
+          isDemo
+          user={{
+            email: demoUser.email,
+            role: demoUser.role,
+            full_name: demoUser.full_name,
+          }}
+        >
+          {children}
+        </DashboardLayout>
+      )
+    }
+    redirect('/login')
+  }
+
   try {
-    const supabase = await createClient()
-    
-    // Vérifier l'auth - avec plusieurs tentatives pour laisser le temps aux cookies de se synchroniser
-    let authUser = null
-    let attempts = 0
-    const maxAttempts = 5 // Plus de tentatives
-    
-    while (!authUser && attempts < maxAttempts) {
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser()
 
-      if (user) {
-        authUser = user
-        console.log(`✅ Dashboard Layout - Utilisateur trouvé après ${attempts + 1} tentative(s)`)
-        break
-      }
-
-      if (authError) {
-        console.log(`⚠️ Dashboard Layout - Tentative ${attempts + 1}/${maxAttempts}: ${authError.message}`)
-      }
-
-      // Si erreur ou pas d'utilisateur, attendre un peu et réessayer
-      if (attempts < maxAttempts - 1) {
-        await new Promise(resolve => setTimeout(resolve, 300))
-      }
-      attempts++
-    }
-
-    // Si toujours pas d'utilisateur après les tentatives, rediriger
-    if (!authUser) {
-      console.log(`❌ Dashboard Layout - Pas d'utilisateur après ${maxAttempts} tentatives`)
-      redirect('/login')
-    }
-
-    // Récupérer les infos complètes de l'utilisateur (nom, rôle)
     const user = await getCurrentUser()
 
     return (

@@ -26,9 +26,10 @@ interface TrelloViewProps {
     full_name?: string | null
     email?: string
   } | null
+  isDemo?: boolean
 }
 
-export default function TrelloView({ leads, closers, currentUser }: TrelloViewProps) {
+export default function TrelloView({ leads, closers, currentUser, isDemo }: TrelloViewProps) {
   const router = useRouter()
   const supabase = createClient()
   const [draggedLead, setDraggedLead] = useState<string | null>(null)
@@ -174,6 +175,13 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
   const handleDrop = async (targetCloserId: string | 'nouveau' | 'ko' | 'clos', leadId?: string) => {
     const leadIdToMove = leadId || draggedLead
     if (!leadIdToMove || !currentUser?.id) return
+    if (isDemo) {
+      alert('Mode démo – les modifications ne sont pas enregistrées.')
+      setDraggedLead(null)
+      setDragOverColumnId(null)
+      setMobileMoveLead(null)
+      return
+    }
 
     const currentLead = leads.find(l => l.id === leadIdToMove)
     if (!currentLead) return
@@ -639,6 +647,7 @@ export default function TrelloView({ leads, closers, currentUser }: TrelloViewPr
           lead={selectedLead}
           currentUser={currentUser}
           onClose={() => setSelectedLead(null)}
+          isDemo={isDemo}
         />
       )}
 

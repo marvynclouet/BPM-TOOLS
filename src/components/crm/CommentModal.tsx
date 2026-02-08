@@ -19,11 +19,12 @@ interface Comment {
 
 interface CommentModalProps {
   leadId: string
-  currentComment: string | null // Ancien champ unique, pour compatibilité
+  currentComment: string | null
   onClose: () => void
   onSave: () => void
   currentUserId: string | null
   currentUserName: string | null
+  isDemo?: boolean
 }
 
 export default function CommentModal({
@@ -33,6 +34,7 @@ export default function CommentModal({
   onSave,
   currentUserId,
   currentUserName,
+  isDemo,
 }: CommentModalProps) {
   const router = useRouter()
   const supabase = createClient()
@@ -47,6 +49,11 @@ export default function CommentModal({
 
   const loadComments = async () => {
     setLoadingComments(true)
+    if (isDemo) {
+      setComments([])
+      setLoadingComments(false)
+      return
+    }
     const { data, error } = await supabase
       .from('lead_comments')
       .select('*, users:user_id(full_name, email)')
@@ -64,7 +71,10 @@ export default function CommentModal({
       alert('Veuillez saisir un commentaire')
       return
     }
-
+    if (isDemo) {
+      alert('Mode démo – les modifications ne sont pas enregistrées.')
+      return
+    }
     setLoading(true)
     const { error } = await supabase
       .from('lead_comments')

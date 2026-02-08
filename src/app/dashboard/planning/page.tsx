@@ -1,12 +1,26 @@
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import PlanningView from '@/components/planning/PlanningView'
+import { isDemoMode } from '@/lib/demo-data'
 
 export default async function PlanningPage() {
+  const cookieStore = await cookies()
+  const demoSession = cookieStore.get('demo_session')?.value === '1'
+  if (isDemoMode() && demoSession) {
+    return (
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8 pb-8 sm:pb-12">
+        <div className="space-y-1 sm:space-y-2">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight">Planning</h1>
+          <p className="text-white/50 text-sm sm:text-base lg:text-lg">Gestion du planning des formations</p>
+        </div>
+        <PlanningView entries={[]} />
+      </div>
+    )
+  }
+
   const supabase = await createClient()
-  
-  // Vérifier si connecté
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser()

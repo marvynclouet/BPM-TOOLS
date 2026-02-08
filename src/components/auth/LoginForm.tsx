@@ -2,13 +2,40 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { DEMO_CREDENTIALS } from '@/lib/demo-data'
 
 export default function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [demoLoading, setDemoLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
+
+  const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+
+  const handleDemoLogin = async () => {
+    if (!isDemoMode) return
+    setDemoLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/demo-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: DEMO_CREDENTIALS.email, password: DEMO_CREDENTIALS.password }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
+        window.location.href = '/dashboard'
+        return
+      }
+      setError(data.error || 'Erreur démo')
+    } catch (err: any) {
+      setError(err.message || 'Erreur inattendue')
+    } finally {
+      setDemoLoading(false)
+    }
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -16,6 +43,22 @@ export default function LoginForm() {
     setError(null)
 
     try {
+      if (isDemoMode && email.trim().toLowerCase() === 'demo@bpm-tools-demo.fr' && password === 'Demo123!') {
+        const res = await fetch('/api/demo-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim(), password }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (res.ok && data.success) {
+          window.location.href = '/dashboard'
+          return
+        }
+        setError(data.error || 'Erreur démo')
+        setLoading(false)
+        return
+      }
+
       const { data, error: loginError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -46,7 +89,8 @@ export default function LoginForm() {
         
         if (session) {
           console.log('✅ Session vérifiée, redirection vers dashboard')
-          // Forcer un refresh complet pour synchroniser avec le serveur
+          // Supprimer le cookie démo pour ne pas être pris pour la démo en prod
+          await fetch('/api/demo-logout', { method: 'POST' })
           window.location.href = '/dashboard'
         } else {
           console.error('❌ Pas de session après connexion')
@@ -109,6 +153,35 @@ export default function LoginForm() {
       >
         {loading ? 'Connexion...' : 'Se connecter'}
       </button>
+
+      {isDemoMode && (
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-white/20" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-[#1a1a1a] px-3 text-white/50">ou</span>
+          </div>
+        </div>
+      )}
+
+      {isDemoMode && (
+        <button
+          type="button"
+          onClick={handleDemoLogin}
+          disabled={demoLoading || loading}
+          className="w-full py-4 rounded-xl font-semibold transition-all border-2 border-amber-400/50 text-amber-300 hover:bg-amber-500/20 hover:border-amber-400/70 disabled:opacity-50 disabled:cursor-not-allowed text-base flex items-center justify-center gap-2"
+        >
+          {demoLoading ? (
+            'Connexion...'
+          ) : (
+            <>
+              <span aria-hidden>🎮</span>
+              Essayer la démo
+            </>
+          )}
+        </button>
+      )}
     </form>
   )
 }

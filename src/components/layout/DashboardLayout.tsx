@@ -15,9 +15,10 @@ interface DashboardLayoutProps {
     role: string
     full_name: string | null
   }
+  isDemo?: boolean
 }
 
-export default function DashboardLayout({ children, user }: DashboardLayoutProps) {
+export default function DashboardLayout({ children, user, isDemo }: DashboardLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
@@ -46,6 +47,12 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
   }, [lastScrollY])
 
   const handleLogout = async () => {
+    if (isDemo) {
+      await fetch('/api/demo-logout', { method: 'POST' })
+      router.push('/login')
+      router.refresh()
+      return
+    }
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
@@ -70,7 +77,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white">
-      <DemoBanner />
+      <DemoBanner isDemoSession={isDemo} />
       <nav className={`border-b border-white/5 backdrop-blur-xl bg-[#1a1a1a]/80 sticky top-0 z-50 transition-transform duration-300 ${
         isNavbarVisible ? 'translate-y-0' : '-translate-y-full'
       }`}>

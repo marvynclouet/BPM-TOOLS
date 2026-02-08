@@ -22,9 +22,10 @@ interface CRMTableProps {
     full_name?: string | null
     email?: string
   } | null
+  isDemo?: boolean
 }
 
-export default function CRMTable({ leads, closers, currentUser }: CRMTableProps) {
+export default function CRMTable({ leads, closers, currentUser, isDemo }: CRMTableProps) {
   const [viewMode, setViewMode] = useState<'table' | 'trello'>('table')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterFormation, setFilterFormation] = useState<string>('all')
@@ -174,12 +175,14 @@ export default function CRMTable({ leads, closers, currentUser }: CRMTableProps)
           )}
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-4 sm:px-6 py-2 sm:py-2.5 bg-white text-black rounded-xl text-xs sm:text-sm font-semibold hover:bg-white/90 transition-all shadow-lg hover:shadow-xl whitespace-nowrap"
-        >
-          ➕ <span className="hidden sm:inline">Ajouter un client</span><span className="sm:hidden">Ajouter</span>
-        </button>
+        {!isDemo && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-4 sm:px-6 py-2 sm:py-2.5 bg-white text-black rounded-xl text-xs sm:text-sm font-semibold hover:bg-white/90 transition-all shadow-lg hover:shadow-xl whitespace-nowrap"
+          >
+            ➕ <span className="hidden sm:inline">Ajouter un client</span><span className="sm:hidden">Ajouter</span>
+          </button>
+        )}
       </div>
 
       {/* Modal ajouter client */}
@@ -193,7 +196,7 @@ export default function CRMTable({ leads, closers, currentUser }: CRMTableProps)
 
       {/* Vue tableau ou Trello */}
       {viewMode === 'trello' ? (
-        <TrelloView leads={leads} closers={closers} currentUser={currentUser} />
+        <TrelloView isDemo={isDemo} leads={leads} closers={closers} currentUser={currentUser} />
       ) : (
         <>
           {/* Vue desktop - Table */}
@@ -258,7 +261,7 @@ export default function CRMTable({ leads, closers, currentUser }: CRMTableProps)
                         </tr>
               ) : (
                 filteredLeads.map((lead) => (
-                  <LeadRow key={lead.id} lead={lead} currentUser={currentUser} />
+                  <LeadRow key={lead.id} lead={lead} currentUser={currentUser} isDemo={isDemo} />
                 ))
               )}
             </tbody>

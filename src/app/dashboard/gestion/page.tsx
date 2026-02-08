@@ -1,14 +1,63 @@
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUser } from '@/lib/auth'
 import GestionTable from '@/components/gestion/GestionTable'
 import AutoRelanceChecker from '@/components/gestion/AutoRelanceChecker'
+import { isDemoMode, getDemoLeads, getDemoUser, getDemoClosers } from '@/lib/demo-data'
 
 export default async function GestionPage() {
+  const cookieStore = await cookies()
+  const demoSession = cookieStore.get('demo_session')?.value === '1'
+  if (isDemoMode() && demoSession) {
+    const demoLeads = getDemoLeads()
+    const demoUser = getDemoUser()
+    const closersMap: Record<string, { full_name: string | null; email: string }> = {}
+    getDemoClosers().forEach(c => { closersMap[c.id] = { full_name: c.full_name, email: c.email } })
+    const hotLeads = demoLeads.filter(l =>
+      l.closer_id === demoUser.id &&
+      (l.interest_level === 'chaud' || l.status === 'en_cours_de_closing' || l.status === 'acompte_en_cours')
+    )
+    const closedLeads = demoLeads.filter(l => l.status === 'clos')
+    const hotLeadsWithPlanning = hotLeads.map(lead => ({ ...lead, planning: [] }))
+    const closedLeadsWithPlanning = closedLeads.map(lead => ({
+      ...lead,
+      planning: [],
+      closer: lead.closer_id ? closersMap[lead.closer_id] : null,
+    }))
+    return (
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8 pb-8 sm:pb-12">
+        <AutoRelanceChecker />
+        <div className="space-y-1 sm:space-y-2">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight">Gestion</h1>
+          <p className="text-white/50 text-sm sm:text-base lg:text-lg">Gestion des leads chauds et élèves closés</p>
+        </div>
+        <div className="space-y-3 sm:space-y-4">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">🔥 Leads chauds</h2>
+            <span className="px-2 sm:px-3 py-1 bg-red-500/20 text-red-300 rounded-full text-xs sm:text-sm font-medium">
+              {hotLeadsWithPlanning.length}
+            </span>
+          </div>
+          <p className="text-white/50 text-xs sm:text-sm">Leads chauds, en cours de closing et acompte en cours - Ouvrez des conversations WhatsApp</p>
+          <GestionTable leads={hotLeadsWithPlanning} showWhatsAppGroup={true} showDocuments={false} />
+        </div>
+        <div className="space-y-3 sm:space-y-4">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">✅ Leads closés</h2>
+            <span className="px-2 sm:px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-xs sm:text-sm font-medium">
+              {closedLeadsWithPlanning.length}
+            </span>
+          </div>
+          <p className="text-white/50 text-xs sm:text-sm">Générer et envoyer les documents (attestation et facture)</p>
+          <GestionTable leads={closedLeadsWithPlanning} showWhatsAppGroup={false} showDocuments={true} />
+        </div>
+      </div>
+    )
+  }
+
   const supabase = await createClient()
-  
-  // Vérifier si connecté
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser()
