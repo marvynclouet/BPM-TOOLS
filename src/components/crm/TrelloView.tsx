@@ -222,6 +222,15 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
         .eq('id', leadIdToMove)
 
       if (!error) {
+        // Sync planning : retirer du planning si KO/autre, ajouter si Clos
+        try {
+          await fetch('/api/planning/sync-lead', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ leadId: leadIdToMove }),
+          })
+        } catch (_) {}
+        await fetch('/api/revalidate-dashboard').catch(() => {})
         router.refresh()
         setMobileMoveLead(null)
       } else {

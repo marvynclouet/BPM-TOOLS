@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(request: NextRequest) {
@@ -28,6 +29,14 @@ export async function POST(request: NextRequest) {
       console.error('Erreur mise à jour comptabilité:', updateError)
       return NextResponse.json({ error: 'Erreur lors de la mise à jour' }, { status: 500 })
     }
+
+    // Invalider le cache de toutes les vues dashboard
+    revalidatePath('/dashboard')
+    revalidatePath('/dashboard/crm')
+    revalidatePath('/dashboard/comptabilite')
+    revalidatePath('/dashboard/planning')
+    revalidatePath('/dashboard/gestion')
+    revalidatePath('/dashboard/mon-espace')
 
     return NextResponse.json({ success: true })
   } catch (error: any) {

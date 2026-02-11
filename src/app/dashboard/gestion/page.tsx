@@ -19,7 +19,7 @@ export default async function GestionPage() {
       l.closer_id === demoUser.id &&
       ((l as { interest_level?: string }).interest_level === 'chaud' || l.status === 'en_cours_de_closing' || (l as { status: string }).status === 'acompte_en_cours')
     )
-    const closedLeads = demoLeads.filter(l => l.status === 'clos')
+    const closedLeads = demoLeads.filter(l => l.status === 'clos' || l.status === 'acompte_regle')
     const hotLeadsWithPlanning = hotLeads.map(lead => ({ ...lead, planning: [] }))
     const closedLeadsWithPlanning = closedLeads.map(lead => ({
       ...lead,
@@ -82,11 +82,11 @@ export default async function GestionPage() {
       .or('interest_level.eq.chaud,status.eq.en_cours_de_closing,status.eq.acompte_en_cours')
       .order('created_at', { ascending: false })
 
-  // 2. Récupérer tous les leads closés avec le closer
+  // 2. Récupérer tous les leads closés (clos ou acompte réglé) pour générer les documents
   const { data: closedLeads, error: closedLeadsError } = await adminClient
     .from('leads')
     .select('*')
-    .eq('status', 'clos')
+    .in('status', ['clos', 'acompte_regle'])
     .order('created_at', { ascending: false })
 
   // Récupérer les informations des closers pour les leads closés
@@ -109,31 +109,35 @@ export default async function GestionPage() {
     }
   }
 
-  // Récupérer les entrées de planning pour tous les leads
   const allLeadIds = [
     ...(hotLeads?.map(l => l.id) || []),
     ...(closedLeads?.map(l => l.id) || [])
   ]
-  let planningEntries: any[] = []
-  
+  let planningByLead: Record<string, any[]> = {}
   if (allLeadIds.length > 0) {
-    const { data: planning } = await adminClient
-      .from('planning')
-      .select('*')
+    const { data: links } = await adminClient
+      .from('planning_lead')
+      .select('planning_id, lead_id')
       .in('lead_id', allLeadIds)
-    
-    planningEntries = planning || []
+    const planningIds = [...new Set((links || []).map((l: any) => l.planning_id))]
+    const { data: planningRows } = planningIds.length > 0
+      ? await adminClient.from('planning').select('*').in('id', planningIds)
+      : { data: [] }
+    const planningEntries = planningRows || []
+    planningByLead = allLeadIds.reduce((acc, lid) => {
+      acc[lid] = planningEntries.filter(p => links?.some((l: any) => l.planning_id === p.id && l.lead_id === lid))
+      return acc
+    }, {} as Record<string, any[]>)
   }
 
-  // Combiner les données
   const hotLeadsWithPlanning = (hotLeads || []).map(lead => ({
     ...lead,
-    planning: planningEntries.filter(p => p.lead_id === lead.id),
+    planning: planningByLead[lead.id] || [],
   }))
 
   const closedLeadsWithPlanning = (closedLeads || []).map(lead => ({
     ...lead,
-    planning: planningEntries.filter(p => p.lead_id === lead.id),
+    planning: planningByLead[lead.id] || [],
     closer: lead.closer_id ? closersMap[lead.closer_id] : null,
   }))
 

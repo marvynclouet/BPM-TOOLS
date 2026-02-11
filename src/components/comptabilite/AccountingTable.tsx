@@ -3,6 +3,7 @@
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale/fr'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import AccountingRow from './AccountingRow'
 
 interface AccountingEntry {
@@ -36,12 +37,13 @@ interface AccountingTableProps {
 }
 
 export default function AccountingTable({ entries }: AccountingTableProps) {
+  const router = useRouter()
   const [refreshKey, setRefreshKey] = useState(0)
 
   const handleUpdate = () => {
     setRefreshKey(prev => prev + 1)
-    // Recharger la page pour mettre à jour les totaux
-    window.location.reload()
+    // Invalider le cache et recharger les données (totaux dashboard, mon-espace, cette page)
+    router.refresh()
   }
 
   // Labels pour les types d'entrées

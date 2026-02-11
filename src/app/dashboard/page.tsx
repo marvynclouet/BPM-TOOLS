@@ -10,6 +10,9 @@ import ActivityChart from '@/components/dashboard/ActivityChart'
 import ClosersRanking from '@/components/dashboard/ClosersRanking'
 import { getDemoLeads, isDemoMode } from '@/lib/demo-data'
 
+// Toujours recharger les données (CA, commissions, etc.) à chaque visite
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardPage() {
   const cookieStore = await cookies()
   const demoSession = cookieStore.get('demo_session')?.value === '1'
@@ -127,7 +130,7 @@ export default async function DashboardPage() {
           .limit(6),
         adminClient
           .from('planning')
-          .select('*, leads:lead_id(first_name, last_name, formation, formation_format)')
+          .select('*, planning_lead(lead_id, leads:lead_id(first_name, last_name, formation, formation_format))')
           .gte('start_date', now.toISOString())
           .lte('end_date', new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString())
           .order('start_date', { ascending: true }),
@@ -147,7 +150,10 @@ export default async function DashboardPage() {
       leadsAppeles = { count: leadsAppelesResult.count || 0 }
       leadsPayes = { count: leadsPayesResult.count || 0 }
       recentLeads = recentLeadsResult.data || []
-      planningEntries = planningResult.data || []
+      planningEntries = (planningResult.data || []).map((p: any) => ({
+        ...p,
+        leads: (p.planning_lead || []).map((pl: any) => pl.leads).filter(Boolean),
+      }))
       allLeadsForChart = allLeadsResult.data || []
 
       // Calculer la distribution des statuts

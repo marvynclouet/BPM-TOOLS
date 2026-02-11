@@ -33,14 +33,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ce lead n\'est pas éligible pour l\'envoi de message WhatsApp' }, { status: 400 })
     }
 
-    // Récupérer l'entrée de planning (optionnel pour les leads chauds)
-    const { data: planningEntries } = await adminClient
-      .from('planning')
-      .select('*')
+    const { data: link } = await adminClient
+      .from('planning_lead')
+      .select('planning_id')
       .eq('lead_id', leadId)
       .limit(1)
-
-    const planningEntry = planningEntries?.[0]
+      .maybeSingle()
+    const { data: planningEntry } = link?.planning_id
+      ? await adminClient.from('planning').select('*').eq('id', link.planning_id).single()
+      : { data: null }
 
 
     // Formater les dates (priorité: formation_start_date du lead, puis planning)

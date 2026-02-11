@@ -10,21 +10,29 @@ interface CalendarEntry {
   start_date: string
   end_date: string
   specific_dates: string[] | null
-  leads: {
+  leads: Array<{
     first_name: string
     last_name: string
-    phone: string
+    phone?: string
     formation: string
     formation_format: string | null
     formation_day: string | null
-  } | null
+  }>
+}
+
+interface LeadOption {
+  id: string
+  first_name: string
+  last_name: string
 }
 
 interface CalendarViewProps {
   entries: CalendarEntry[]
+  leads?: LeadOption[]
+  onRefresh?: () => void
 }
 
-export default function CalendarView({ entries }: CalendarViewProps) {
+export default function CalendarView({ entries, leads = [], onRefresh }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedEntries, setSelectedEntries] = useState<CalendarEntry[]>([])
@@ -170,14 +178,14 @@ export default function CalendarView({ entries }: CalendarViewProps) {
                         setSelectedDate(day)
                         setSelectedEntries(dayEntries)
                       }}
-                      className={`w-full text-left text-xs rounded px-2 py-1 truncate transition cursor-pointer ${getFormatColors(entry.leads?.formation_format || null)}`}
-                      title={`${entry.leads?.first_name} ${entry.leads?.last_name} - ${entry.leads?.formation ? formationLabels[entry.leads.formation] : ''}`}
+                      className={`w-full text-left text-xs rounded px-2 py-1 truncate transition cursor-pointer ${getFormatColors(entry.leads?.[0]?.formation_format || null)}`}
+                      title={entry.leads?.map(l => `${l.first_name} ${l.last_name}`).join(', ')}
                     >
                       <div className="font-medium truncate">
-                        {entry.leads?.formation_format ? formatLabels[entry.leads.formation_format] : '📅'}
+                        {entry.leads?.[0]?.formation_format ? formatLabels[entry.leads[0].formation_format] : '📅'}
                       </div>
-                      <div className={`${getFormatTextColor(entry.leads?.formation_format || null)} text-[10px] truncate`}>
-                        {entry.leads?.formation ? formationLabels[entry.leads.formation] : ''}
+                      <div className={`${getFormatTextColor(entry.leads?.[0]?.formation_format || null)} text-[10px] truncate`}>
+                        {entry.leads?.length ? (entry.leads.length > 1 ? `${entry.leads.length} participants` : (formationLabels[entry.leads[0].formation] || '')) : ''}
                       </div>
                     </button>
                   ))}
@@ -225,19 +233,19 @@ export default function CalendarView({ entries }: CalendarViewProps) {
                       setSelectedDate(day)
                       setSelectedEntries(dayEntries)
                     }}
-                    className={`w-full text-left rounded-lg px-3 py-2 transition ${getFormatColors(entry.leads?.formation_format || null)}`}
+                    className={`w-full text-left rounded-lg px-3 py-2 transition ${getFormatColors(entry.leads?.[0]?.formation_format || null)}`}
                   >
                     <div className="font-medium text-sm">
-                      {entry.leads?.formation_format ? formatLabels[entry.leads.formation_format] : '📅'}
+                      {entry.leads?.[0]?.formation_format ? formatLabels[entry.leads[0].formation_format] : '📅'}
                     </div>
-                    <div className={`${getFormatTextColor(entry.leads?.formation_format || null)} text-xs mt-1`}>
-                      {entry.leads?.formation ? formationLabels[entry.leads.formation] : ''}
+                    <div className={`${getFormatTextColor(entry.leads?.[0]?.formation_format || null)} text-xs mt-1`}>
+                      {entry.leads?.length ? (entry.leads.length > 1 ? `${entry.leads.length} participants` : (formationLabels[entry.leads[0].formation] || '')) : ''}
                     </div>
-                    {entry.leads && (
+                    {entry.leads?.length ? (
                       <div className="text-xs text-white/60 mt-1">
-                        {entry.leads.first_name} {entry.leads.last_name}
+                        {entry.leads.map(l => `${l.first_name} ${l.last_name}`).join(', ')}
                       </div>
-                    )}
+                    ) : null}
                   </button>
                 ))}
               </div>
@@ -260,6 +268,8 @@ export default function CalendarView({ entries }: CalendarViewProps) {
             setSelectedDate(null)
             setSelectedEntries([])
           }}
+          onRefresh={onRefresh}
+          leads={leads}
         />
       )}
     </div>

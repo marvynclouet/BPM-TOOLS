@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendNewLeadNotification } from '@/lib/communications'
+
+const DASHBOARD_PATHS = ['/dashboard', '/dashboard/crm', '/dashboard/comptabilite', '/dashboard/planning', '/dashboard/gestion', '/dashboard/mon-espace']
 
 export async function POST(request: NextRequest) {
   console.log('📥 POST /api/leads/create reçu')
@@ -66,6 +69,7 @@ export async function POST(request: NextRequest) {
       console.warn('⚠️ LEAD_NOTIFICATION_EMAIL non défini - aucune notification envoyée')
     }
 
+    for (const p of DASHBOARD_PATHS) revalidatePath(p)
     return NextResponse.json(
       { success: true, lead: data },
       { status: 201 }

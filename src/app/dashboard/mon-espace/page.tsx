@@ -12,6 +12,9 @@ import PeriodSelector from '@/components/shared/PeriodSelector'
 import AdminClosersPageClient from '@/components/admin/AdminClosersPageClient'
 import { isDemoMode, getDemoLeads, getDemoUser, getDemoClosersList } from '@/lib/demo-data'
 
+// Toujours recharger les stats (CA, commissions) à chaque visite
+export const dynamic = 'force-dynamic'
+
 type PageProps = { searchParams: { from?: string; to?: string } }
 
 export default async function MonEspacePage({ searchParams = {} }: PageProps) {

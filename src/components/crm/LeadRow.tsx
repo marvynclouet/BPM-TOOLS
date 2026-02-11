@@ -247,6 +247,17 @@ export default function LeadRow({ lead, currentUser, isDemo }: LeadRowProps) {
       .eq('id', lead.id)
 
     if (!error) {
+      const shouldSyncPlanning =
+        ['formation_start_date', 'formation_format', 'formation_day'].includes(field) ||
+        field === 'status'
+      if (shouldSyncPlanning) {
+        await fetch('/api/planning/sync-lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leadId: lead.id }),
+        })
+      }
+      await fetch('/api/revalidate-dashboard').catch(() => {})
       setEditingField(null)
       router.refresh()
     } else {

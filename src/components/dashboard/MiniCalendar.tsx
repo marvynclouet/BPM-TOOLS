@@ -4,16 +4,18 @@ import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, getDay } 
 import { fr } from 'date-fns/locale/fr'
 import Link from 'next/link'
 
+interface LeadInfo {
+  first_name: string
+  last_name: string
+  formation: string
+  formation_format: string | null
+}
+
 interface MiniCalendarEntry {
   start_date: string
   end_date: string
   specific_dates: string[] | null
-  leads: {
-    first_name: string
-    last_name: string
-    formation: string
-    formation_format: string | null
-  } | null
+  leads: LeadInfo[] | LeadInfo | null
 }
 
 interface MiniCalendarProps {
@@ -103,16 +105,24 @@ export default function MiniCalendar({ entries }: MiniCalendarProps) {
                 {format(day, 'd')}
               </div>
               <div className="space-y-1.5">
-                {dayEntries.slice(0, 2).map((entry, entryIdx) => (
-                  <div
-                    key={entryIdx}
-                    className={`text-xs rounded-lg px-2 py-1 truncate font-medium ${getFormatColors(entry.leads?.formation_format || null)}`}
-                    title={`${entry.leads?.first_name} ${entry.leads?.last_name}`}
-                  >
-                    {entry.leads?.formation_format ? formatLabels[entry.leads.formation_format] : '📅'}{' '}
-                    {entry.leads?.formation ? formationLabels[entry.leads.formation] : ''}
-                  </div>
-                ))}
+                {dayEntries.slice(0, 2).map((entry, entryIdx) => {
+                  const leadList = Array.isArray(entry.leads) ? entry.leads : entry.leads ? [entry.leads] : []
+                  const first = leadList[0]
+                  const title = leadList.length > 1
+                    ? leadList.map(l => `${l?.first_name} ${l?.last_name}`).join(', ')
+                    : `${first?.first_name} ${first?.last_name}`
+                  return (
+                    <div
+                      key={entryIdx}
+                      className={`text-xs rounded-lg px-2 py-1 truncate font-medium ${getFormatColors(first?.formation_format || null)}`}
+                      title={title}
+                    >
+                      {first?.formation_format ? formatLabels[first.formation_format] : '📅'}{' '}
+                      {first?.formation ? formationLabels[first.formation] : ''}
+                      {leadList.length > 1 ? ` (${leadList.length})` : ''}
+                    </div>
+                  )
+                })}
                 {dayEntries.length > 2 && (
                   <div className="text-xs text-white/40 font-light">+{dayEntries.length - 2}</div>
                 )}

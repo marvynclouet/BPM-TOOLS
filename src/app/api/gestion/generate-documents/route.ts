@@ -31,14 +31,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email du lead non renseigné' }, { status: 400 })
     }
 
-    // Récupérer l'entrée de planning
-    const { data: planningEntries } = await adminClient
-      .from('planning')
-      .select('*')
+    const { data: link } = await adminClient
+      .from('planning_lead')
+      .select('planning_id')
       .eq('lead_id', leadId)
       .limit(1)
-
-    const planningEntry = planningEntries?.[0]
+      .maybeSingle()
+    const { data: planningEntry } = link?.planning_id
+      ? await adminClient.from('planning').select('*').eq('id', link.planning_id).single()
+      : { data: null }
 
     // Formater les dates pour l'attestation
     const formatDatesForAttestation = () => {
