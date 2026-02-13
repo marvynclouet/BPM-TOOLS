@@ -21,6 +21,7 @@ interface PlanningEntry {
   end_date: string
   specific_dates: string[] | null
   leads: LeadInfo[]
+  _allIds?: string[]
 }
 
 interface LeadOption {
@@ -271,19 +272,19 @@ export default function PlanningEntryModal({ entries, date, onClose, onRefresh, 
                             </div>
                             <div className="sm:col-span-2">
                               <label className="block text-xs font-medium text-white/70 mb-1">Début → Fin</label>
-                              <div className="flex flex-wrap gap-2 items-center">
+                              <div className="flex flex-col sm:flex-row flex-wrap gap-2 items-stretch sm:items-center">
                                 <input
                                   type="datetime-local"
                                   value={editStart}
                                   onChange={(e) => setEditStart(e.target.value)}
-                                  className="flex-1 min-w-[160px] px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-xs"
+                                  className="w-full sm:flex-1 min-w-0 sm:min-w-[160px] px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-xs"
                                 />
-                                <span className="text-white/50">→</span>
+                                <span className="text-white/50 hidden sm:inline">→</span>
                                 <input
                                   type="datetime-local"
                                   value={editEnd}
                                   onChange={(e) => setEditEnd(e.target.value)}
-                                  className="flex-1 min-w-[160px] px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-xs"
+                                  className="w-full sm:flex-1 min-w-0 sm:min-w-[160px] px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-xs"
                                 />
                               </div>
                             </div>
@@ -329,6 +330,10 @@ export default function PlanningEntryModal({ entries, date, onClose, onRefresh, 
                                     body: JSON.stringify(planningPayload),
                                   })
                                   if (res.ok) {
+                                    const otherIds = (entry._allIds || []).filter((id) => id !== entry.id)
+                                    for (const id of otherIds) {
+                                      await fetch(`/api/planning/${id}`, { method: 'DELETE' })
+                                    }
                                     setEditingEntryId(null)
                                     onRefresh()
                                   } else {

@@ -41,13 +41,23 @@ export async function PATCH(
     }
 
     if (lead_ids !== undefined && Array.isArray(lead_ids)) {
-      await adminClient.from('planning_lead').delete().eq('planning_id', id)
       const toInsert = lead_ids.filter((lid: string) => lid).map((lead_id: string) => ({ planning_id: id, lead_id }))
-      if (toInsert.length > 0) {
-        const { error: linkError } = await adminClient.from('planning_lead').insert(toInsert)
-        if (linkError) {
-          console.error('Erreur mise à jour planning_lead:', linkError)
-          return NextResponse.json({ error: linkError.message }, { status: 500 })
+      let planningLeadOk = false
+      const delRes = await adminClient.from('planning_lead').delete().eq('planning_id', id)
+      const tableMissing = delRes.error && (delRes.error.code === 'PGRST205' || delRes.error.message?.includes('planning_lead'))
+      if (!tableMissing && toInsert.length > 0) {
+        const insRes = await adminClient.from('planning_lead').insert(toInsert)
+        if (!insRes.error) planningLeadOk = true
+        else if (insRes.error.code !== 'PGRST205' && !insRes.error.message?.includes('planning_lead')) {
+          console.error('Erreur mise à jour planning_lead:', insRes.error)
+          return NextResponse.json({ error: insRes.error.message }, { status: 500 })
+        }
+      }
+      if (toInsert.length > 0 && (!planningLeadOk || tableMissing)) {
+        const firstId = toInsert[0].lead_id
+        const { error: leadIdErr } = await adminClient.from('planning').update({ lead_id: firstId }).eq('id', id)
+        if (leadIdErr && leadIdErr.code !== '42703' && !leadIdErr.message?.includes('lead_id')) {
+          console.error('Erreur mise à jour planning.lead_id:', leadIdErr)
         }
       }
     }

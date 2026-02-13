@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import PlanningView from '@/components/planning/PlanningView'
 import PlanningClient from '@/components/planning/PlanningClient'
 import { isDemoMode } from '@/lib/demo-data'
+import { syncLeadToPlanning, deduplicatePlanningSessions } from '@/lib/planning-sync'
 
 export default async function PlanningPage() {
   const cookieStore = await cookies()
@@ -37,6 +38,31 @@ export default async function PlanningPage() {
     .select('id, first_name, last_name')
     .in('status', ['clos', 'acompte_regle'])
     .order('last_name', { ascending: true })
+
+  const closedLeadIds = (leads || []).map((l: { id: string }) => l.id)
+  const inPlanningIds = new Set<string>()
+  try {
+    const { data: plRows } = await adminClient.from('planning_lead').select('lead_id')
+    for (const r of plRows || []) {
+      if (r.lead_id) inPlanningIds.add(r.lead_id)
+    }
+  } catch {
+    // Table planning_lead peut ne pas exister
+  }
+  try {
+    const { data: planningWithLeadId } = await adminClient.from('planning').select('lead_id')
+    for (const p of planningWithLeadId || []) {
+      if (p.lead_id) inPlanningIds.add(p.lead_id)
+    }
+  } catch {
+    // Colonne lead_id peut être absente
+  }
+  const missingInPlanning = closedLeadIds.filter((id: string) => !inPlanningIds.has(id))
+  for (const leadId of missingInPlanning) {
+    await syncLeadToPlanning(adminClient, leadId)
+  }
+
+  await deduplicatePlanningSessions(adminClient)
 
   let planningRaw: any[] = []
   let planningLeadRows: { planning_id: string; lead_id: string }[] = []
@@ -99,7 +125,7 @@ export default async function PlanningPage() {
     }
   }
 
-  const planning = planningRaw.map((p: any) => {
+  let planning = planningRaw.map((p: any) => {
     const leadIds = (planningLeadByPlanningId[p.id]?.length ? planningLeadByPlanningId[p.id] : null) || (p.lead_id ? [p.lead_id] : [])
     const leadsList = leadIds.map((lid: string) => leadsById[lid]).filter(Boolean)
     return {
@@ -109,6 +135,51 @@ export default async function PlanningPage() {
       lead_ids: leadIds,
     }
   })
+
+  const byDateKey = new Map<string, any[]>()
+  for (const entry of planning) {
+    const key = `${String(entry.start_date || '').slice(0, 10)}|${String(entry.end_date || '').slice(0, 10)}`
+    if (!byDateKey.has(key)) byDateKey.set(key, [])
+    byDateKey.get(key)!.push(entry)
+  }
+  const merged: any[] = []
+  for (const [, group] of byDateKey) {
+    if (group.length === 0) continue
+    if (group.length === 1) {
+      merged.push(group[0])
+      continue
+    }
+    const allLeads: any[] = []
+    const allLeadIds: string[] = []
+    const seen = new Set<string>()
+    for (const e of group) {
+      for (const l of e.leads || []) {
+        if (l?.id && !seen.has(l.id)) {
+          seen.add(l.id)
+          allLeads.push(l)
+          allLeadIds.push(l.id)
+        }
+      }
+      for (const lid of e.lead_ids || []) {
+        if (lid && !seen.has(lid)) {
+          seen.add(lid)
+          const l = leadsById[lid]
+          if (l) allLeads.push(l)
+          allLeadIds.push(lid)
+        }
+      }
+    }
+    const first = group[0]
+    merged.push({
+      ...first,
+      id: first.id,
+      leads: allLeads.length ? allLeads : first.leads,
+      lead_id: allLeadIds[0] || first.lead_id,
+      lead_ids: allLeadIds.length ? allLeadIds : first.lead_ids,
+      _allIds: group.map((e: any) => e.id),
+    })
+  }
+  planning = merged.sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''))
 
   return (
     <div className="space-y-4 sm:space-y-6 lg:space-y-8 pb-8 sm:pb-12">

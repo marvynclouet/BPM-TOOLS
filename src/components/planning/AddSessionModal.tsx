@@ -132,18 +132,18 @@ export default function AddSessionModal({ leads, onClose, onSuccess }: AddSessio
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-3 sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-2 sm:p-4" onClick={onClose}>
       <div
-        className="bg-white/10 border border-white/20 rounded-lg p-4 sm:p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-white/10 border border-white/20 rounded-lg p-3 sm:p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg sm:text-xl font-bold text-white">➕ Ajouter une session</h2>
-          <button onClick={onClose} className="text-white/70 hover:text-white text-2xl">
+        <div className="flex justify-between items-center mb-3 sm:mb-4">
+          <h2 className="text-base sm:text-xl font-bold text-white truncate pr-2">➕ Ajouter une session</h2>
+          <button onClick={onClose} className="text-white/70 hover:text-white text-xl sm:text-2xl shrink-0">
             ×
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           <div>
             <label className="block text-sm font-medium text-white/80 mb-1">Participants (plusieurs possibles)</label>
             <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 bg-white/5 rounded border border-white/10">
@@ -228,19 +228,19 @@ export default function AddSessionModal({ leads, onClose, onSuccess }: AddSessio
             />
           </div>
 
-          {error && <p className="text-sm text-red-300">{error}</p>}
-          <div className="flex gap-2 justify-end pt-2">
+          {error && <p className="text-xs sm:text-sm text-red-300">{error}</p>}
+          <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded bg-white/10 text-white hover:bg-white/20"
+              className="w-full sm:w-auto px-4 py-2 rounded bg-white/10 text-white hover:bg-white/20 text-sm"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={saving || leads.length === 0}
-              className="px-4 py-2 rounded bg-white text-black font-medium disabled:opacity-50"
+              className="w-full sm:w-auto px-4 py-2 rounded bg-white text-black font-medium disabled:opacity-50 text-sm"
             >
               {saving ? 'Enregistrement…' : 'Créer la session'}
             </button>
