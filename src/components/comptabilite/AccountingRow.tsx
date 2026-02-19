@@ -14,6 +14,7 @@ interface AccountingEntry {
   commission_formateur: number
   remaining_amount: number | null
   created_at: string
+  status?: 'actif' | 'annulé'
   leads: {
     first_name: string
     last_name: string
@@ -45,6 +46,8 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
   })
   const [loading, setLoading] = useState(false)
   const [loadingInvoice, setLoadingInvoice] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [updatingStatus, setUpdatingStatus] = useState(false)
 
   const formationLabels: Record<string, string> = {
     inge_son: 'Ingé son',
@@ -97,6 +100,43 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
     }
   }
 
+  const handleStatusChange = async (newStatus: 'actif' | 'annulé') => {
+    setUpdatingStatus(true)
+    try {
+      const res = await fetch('/api/accounting/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entryId: entry.id, field: 'status', value: newStatus }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.error || 'Erreur')
+      }
+      onUpdate()
+    } catch (err: any) {
+      alert(err.message || 'Erreur')
+    } finally {
+      setUpdatingStatus(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('Supprimer cette entrée de la comptabilité ?')) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/accounting/entries/${entry.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.error || 'Erreur')
+      }
+      onUpdate()
+    } catch (err: any) {
+      alert(err.message || 'Erreur')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const handleFieldCancel = () => {
     setEditValues({
       amount: entry.amount,
@@ -120,6 +160,7 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           leadId: entry.lead_id,
+          type: 'facture',
         }),
       })
 
@@ -132,7 +173,7 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `facture-${lead?.first_name}-${lead?.last_name}.pdf`
+      a.download = `facture-${entry.leads?.first_name ?? ''}-${entry.leads?.last_name ?? ''}.pdf`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
@@ -331,7 +372,18 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
         )}
       </td>
       <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
-        <div className="flex items-center gap-2">
+        <select
+          value={(entry as { status?: string }).status || 'actif'}
+          onChange={(e) => handleStatusChange(e.target.value as 'actif' | 'annulé')}
+          disabled={updatingStatus}
+          className="px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs disabled:opacity-50"
+        >
+          <option value="actif">Actif</option>
+          <option value="annulé">Annulé</option>
+        </select>
+      </td>
+      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleGenerateInvoice}
             disabled={loadingInvoice}
@@ -359,6 +411,15 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
               </button>
             )
           )}
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="px-3 py-1.5 bg-red-500/20 text-red-300 rounded-lg text-xs font-medium hover:bg-red-500/30 transition disabled:opacity-50"
+            title="Supprimer l'entrée"
+          >
+            {deleting ? '...' : '🗑️ Supprimer'}
+          </button>
         </div>
       </td>
     </tr>

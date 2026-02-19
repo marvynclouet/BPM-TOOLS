@@ -82,6 +82,47 @@ export default async function ComptabilitePage({ searchParams = {} }: PageProps)
   try {
     const adminClient = createAdminClient()
 
+    // Leads closés ou acompte réglé sans entrée comptable → créer une entrée pour qu'ils apparaissent en compta
+    const { data: closedLeads } = await adminClient
+      .from('leads')
+      .select('id, status, price_fixed, price_deposit')
+      .in('status', ['clos', 'acompte_regle'])
+    const closedLeadIds = (closedLeads || []).map((l: { id: string }) => l.id)
+    let existingEntryLeadIds: string[] = []
+    if (closedLeadIds.length > 0) {
+      const { data: existingEntries } = await adminClient
+        .from('accounting_entries')
+        .select('lead_id')
+        .in('lead_id', closedLeadIds)
+      existingEntryLeadIds = [...new Set((existingEntries || []).map((e: { lead_id: string }) => e.lead_id))]
+    }
+    const missingLeadIds = closedLeadIds.filter((id: string) => !existingEntryLeadIds.includes(id))
+    for (const leadId of missingLeadIds) {
+      const lead = closedLeads?.find((l: { id: string }) => l.id === leadId)
+      if (!lead || lead.price_fixed == null) continue
+      const amount = Number(lead.price_fixed)
+      const deposit = Number(lead.price_deposit || 0)
+      let entryType: 'acompte' | 'complet' = lead.status === 'acompte_regle' ? 'acompte' : 'complet'
+      let entryAmount = entryType === 'acompte' ? deposit : amount
+      let remaining: number | null = entryType === 'acompte' ? amount - deposit : null
+      if (entryType === 'acompte' && (!deposit || deposit <= 0)) {
+        entryType = 'complet'
+        entryAmount = amount
+        remaining = null
+      }
+      const commissionCloser = entryAmount * 0.10
+      const commissionFormateur = entryAmount * 0.05
+      await adminClient.from('accounting_entries').insert({
+        lead_id: leadId,
+        payment_id: null,
+        entry_type: entryType,
+        amount: entryAmount,
+        commission_closer: commissionCloser,
+        commission_formateur: commissionFormateur,
+        remaining_amount: remaining,
+      })
+    }
+
     let query = adminClient
       .from('accounting_entries')
       .select('*')

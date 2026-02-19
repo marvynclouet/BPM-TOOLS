@@ -14,15 +14,20 @@ export async function POST(request: NextRequest) {
     const adminClient = createAdminClient()
 
     // Vérifier que le champ est modifiable
-    const allowedFields = ['amount', 'commission_closer', 'commission_formateur', 'remaining_amount']
+    const allowedFields = ['amount', 'commission_closer', 'commission_formateur', 'remaining_amount', 'status']
     if (!allowedFields.includes(field)) {
       return NextResponse.json({ error: 'Champ non modifiable' }, { status: 400 })
     }
 
-    // Mettre à jour l'entrée comptable
+    // Mettre à jour l'entrée comptable (status doit être actif ou annulé)
+    const updatePayload: Record<string, unknown> = { [field]: value }
+    if (field === 'status' && value !== 'actif' && value !== 'annulé') {
+      return NextResponse.json({ error: 'Status invalide (actif ou annulé)' }, { status: 400 })
+    }
+
     const { error: updateError } = await adminClient
       .from('accounting_entries')
-      .update({ [field]: value })
+      .update(updatePayload)
       .eq('id', entryId)
 
     if (updateError) {

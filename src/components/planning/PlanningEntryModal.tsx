@@ -319,23 +319,46 @@ export default function PlanningEntryModal({ entries, date, onClose, onRefresh, 
                                       }
                                     }
                                   }
-                                  const planningPayload: { lead_ids?: string[]; start_date: string; end_date: string } = {
+                                  const planningPayload: { lead_ids?: string[]; start_date: string; end_date: string; specific_dates?: string[] | null } = {
                                     start_date: new Date(editStart).toISOString(),
                                     end_date: new Date(editEnd).toISOString(),
                                   }
                                   if (leads.length > 0 && selectedIds.length > 0) planningPayload.lead_ids = selectedIds
+                                  // Envoyer specific_dates pour format mensuelle / bpm_fast (cohérence affichage)
+                                  if (editFormat === 'mensuelle' && (editDay === 'samedi' || editDay === 'dimanche')) {
+                                    const d = new Date(editStart)
+                                    const year = d.getFullYear()
+                                    const month = d.getMonth()
+                                    const fromDay = d.getDate()
+                                    const targetDay = editDay === 'samedi' ? 6 : 0
+                                    const dates: string[] = []
+                                    const daysInMonth = new Date(year, month + 1, 0).getDate()
+                                    for (let dayNum = fromDay; dayNum <= daysInMonth; dayNum++) {
+                                      const date = new Date(year, month, dayNum)
+                                      if (date.getDay() === targetDay) {
+                                        dates.push(date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0'))
+                                      }
+                                    }
+                                    planningPayload.specific_dates = dates.length >= 4 ? dates.slice(0, 4) : null
+                                  } else if (editFormat === 'bpm_fast') {
+                                    planningPayload.specific_dates = [editStart.slice(0, 10), editEnd.slice(0, 10)]
+                                  }
                                   const res = await fetch(`/api/planning/${entry.id}`, {
                                     method: 'PATCH',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify(planningPayload),
                                   })
                                   if (res.ok) {
-                                    const otherIds = (entry._allIds || []).filter((id) => id !== entry.id)
+                                    // Ne supprimer que les vrais doublons (même créneau fusionné), jamais la session qu'on vient de modifier
+                                    const allIds = entry._allIds || [entry.id]
+                                    const otherIds = allIds.filter((id) => id !== entry.id)
                                     for (const id of otherIds) {
                                       await fetch(`/api/planning/${id}`, { method: 'DELETE' })
                                     }
                                     setEditingEntryId(null)
                                     onRefresh()
+                                    // Fermer après un court délai pour laisser le temps au refresh d'afficher la liste à jour
+                                    setTimeout(() => onClose(), 400)
                                   } else {
                                     const d = await res.json().catch(() => ({}))
                                     alert(d.error || 'Erreur')

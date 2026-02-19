@@ -62,18 +62,46 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: planError?.message || 'Erreur création' }, { status: 500 })
     }
 
-    const { error: linkError } = await adminClient
+    const linkInsert = await adminClient
       .from('planning_lead')
       .insert(ids.map((lead_id: string) => ({ planning_id: planning.id, lead_id })))
 
-    if (linkError) {
-      const tableMissing = linkError.code === '42P01' || linkError.message?.includes('planning_lead')
-      if (tableMissing) {
+    if (linkInsert.error) {
+      const tableMissing =
+        linkInsert.error.code === '42P01' ||
+        linkInsert.error.code === 'PGRST204' ||
+        linkInsert.error.code === 'PGRST205' ||
+        (linkInsert.error.message && /planning_lead|relation.*exist|does not exist/i.test(linkInsert.error.message))
+
+      if (tableMissing && ids.length > 1) {
+        // Fallback : table planning_lead absente ou indisponible → une ligne planning par participant (mêmes dates)
+        // La page planning fusionne par dates, donc une seule carte avec tous les élèves s'affichera
+        await adminClient.from('planning').delete().eq('id', planning.id)
+        const baseRow: Record<string, unknown> = {
+          start_date: planningRow.start_date,
+          end_date: planningRow.end_date,
+        }
+        if (Array.isArray(planningRow.specific_dates) && planningRow.specific_dates.length > 0) {
+          baseRow.specific_dates = planningRow.specific_dates
+        }
+        for (let i = 0; i < ids.length; i++) {
+          const row = { ...baseRow, lead_id: ids[i] }
+          const ins = await adminClient.from('planning').insert(row).select().single()
+          if (ins.error && (ins.error.message?.includes('lead_id') || ins.error.code === '42703')) {
+            const { lead_id: _lid, ...rowWithoutLeadId } = row as Record<string, unknown>
+            await adminClient.from('planning').insert(rowWithoutLeadId).select().single()
+          }
+        }
+        for (const p of DASHBOARD_PATHS) revalidatePath(p)
+        return NextResponse.json({ success: true, data: { id: 'multi', lead_ids: ids } }, { status: 201 })
+      }
+      if (tableMissing && ids.length === 1) {
+        for (const p of DASHBOARD_PATHS) revalidatePath(p)
         return NextResponse.json({ success: true, data: planning }, { status: 201 })
       }
-      console.error('Erreur liaison planning_lead:', linkError)
+      console.error('Erreur liaison planning_lead:', linkInsert.error)
       await adminClient.from('planning').delete().eq('id', planning.id)
-      return NextResponse.json({ error: linkError.message }, { status: 500 })
+      return NextResponse.json({ error: linkInsert.error.message }, { status: 500 })
     }
 
     for (const p of DASHBOARD_PATHS) revalidatePath(p)

@@ -5,6 +5,7 @@ import { fr } from 'date-fns/locale/fr'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AccountingRow from './AccountingRow'
+import AddAccountingEntryModal from './AddAccountingEntryModal'
 
 interface AccountingEntry {
   id: string
@@ -16,6 +17,7 @@ interface AccountingEntry {
   commission_formateur: number
   remaining_amount: number | null
   created_at: string
+  status?: 'actif' | 'annulé'
   leads: {
     first_name: string
     last_name: string
@@ -39,12 +41,14 @@ interface AccountingTableProps {
 export default function AccountingTable({ entries }: AccountingTableProps) {
   const router = useRouter()
   const [refreshKey, setRefreshKey] = useState(0)
+  const [showAddModal, setShowAddModal] = useState(false)
 
   const handleUpdate = () => {
     setRefreshKey(prev => prev + 1)
-    // Invalider le cache et recharger les données (totaux dashboard, mon-espace, cette page)
     router.refresh()
   }
+
+  const activeEntries = entries.filter((e) => (e.status || 'actif') !== 'annulé')
 
   // Labels pour les types d'entrées
   const entryTypeLabels: Record<string, string> = {
@@ -60,24 +64,23 @@ export default function AccountingTable({ entries }: AccountingTableProps) {
     autre: 'Autre',
   }
 
-  // Calculer les totaux globaux
-  const totalAmount = entries.reduce((sum, entry) => sum + Number(entry.amount), 0)
-  const totalCommissionCloser = entries.reduce(
+  // Totaux sur les entrées actives uniquement (annulé exclu)
+  const totalAmount = activeEntries.reduce((sum, entry) => sum + Number(entry.amount), 0)
+  const totalCommissionCloser = activeEntries.reduce(
     (sum, entry) => sum + Number(entry.commission_closer),
     0
   )
-  const totalCommissionFormateur = entries.reduce(
+  const totalCommissionFormateur = activeEntries.reduce(
     (sum, entry) => sum + Number(entry.commission_formateur),
     0
   )
   const totalNet = totalAmount - totalCommissionCloser - totalCommissionFormateur
 
-  // Calculer les statistiques du mois en cours
   const now = new Date()
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
 
-  const entriesThisMonth = entries.filter(entry => {
+  const entriesThisMonth = activeEntries.filter(entry => {
     const entryDate = new Date(entry.created_at)
     return entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear
   })
@@ -92,6 +95,22 @@ export default function AccountingTable({ entries }: AccountingTableProps) {
 
   return (
     <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setShowAddModal(true)}
+          className="px-4 py-2 rounded-xl bg-green-500/20 text-green-300 font-medium hover:bg-green-500/30 transition text-sm"
+        >
+          ➕ Ajouter une entrée
+        </button>
+      </div>
+      {showAddModal && (
+        <AddAccountingEntryModal
+          onClose={() => setShowAddModal(false)}
+          onSuccess={handleUpdate}
+        />
+      )}
+
       {/* Statistiques du mois en cours */}
       <div className="space-y-2 sm:space-y-3">
         <h2 className="text-lg sm:text-xl font-semibold text-white">
@@ -173,6 +192,9 @@ export default function AccountingTable({ entries }: AccountingTableProps) {
                   Commission Formateur
                 </th>
                 <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider">
+                  État
+                </th>
+                <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -180,7 +202,7 @@ export default function AccountingTable({ entries }: AccountingTableProps) {
             <tbody className="divide-y divide-white/5">
               {entries.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center">
+                  <td colSpan={10} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <p className="text-white/50 font-light">Aucune entrée comptable enregistrée</p>
                       <p className="text-white/30 text-xs font-light">
@@ -218,13 +240,20 @@ export default function AccountingTable({ entries }: AccountingTableProps) {
                     <p className="text-xs text-white/50 mt-1 truncate">{entry.leads.email}</p>
                   )}
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ml-2 ${
-                  entry.entry_type === 'complet' ? 'bg-green-500/20 text-green-300' :
-                  entry.entry_type === 'acompte' ? 'bg-orange-500/20 text-orange-300' :
-                  'bg-blue-500/20 text-blue-300'
-                }`}>
-                  {entryTypeLabels[entry.entry_type]}
-                </span>
+                <div className="flex flex-wrap items-center gap-1.5 flex-shrink-0 ml-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    (entry as { status?: string }).status === 'annulé' ? 'bg-white/20 text-white/60' : 'bg-green-500/20 text-green-300'
+                  }`}>
+                    {(entry as { status?: string }).status === 'annulé' ? 'Annulé' : 'Actif'}
+                  </span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    entry.entry_type === 'complet' ? 'bg-green-500/20 text-green-300' :
+                    entry.entry_type === 'acompte' ? 'bg-orange-500/20 text-orange-300' :
+                    'bg-blue-500/20 text-blue-300'
+                  }`}>
+                    {entryTypeLabels[entry.entry_type]}
+                  </span>
+                </div>
               </div>
               
               <div className="grid grid-cols-2 gap-2 text-xs">
@@ -318,6 +347,24 @@ export default function AccountingTable({ entries }: AccountingTableProps) {
                     📧 Envoyer
                   </button>
                 )}
+                <button
+                  onClick={async () => {
+                    if (!confirm('Supprimer cette entrée ?')) return
+                    try {
+                      const res = await fetch(`/api/accounting/entries/${entry.id}`, { method: 'DELETE' })
+                      if (res.ok) handleUpdate()
+                      else {
+                        const d = await res.json().catch(() => ({}))
+                        alert(d.error || 'Erreur')
+                      }
+                    } catch (e) {
+                      alert('Erreur')
+                    }
+                  }}
+                  className="px-3 py-2 bg-red-500/20 text-red-300 rounded-lg text-xs font-medium hover:bg-red-500/30 transition"
+                >
+                  🗑️ Supprimer
+                </button>
               </div>
             </div>
           ))

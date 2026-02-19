@@ -4,6 +4,11 @@ import { useState } from 'react'
 import { calculateFormationDates } from '@/lib/planning'
 import type { FormationFormat, FormationDay } from '@/lib/planning'
 
+function todayYYYYMMDD(): string {
+  const d = new Date()
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
+}
+
 interface LeadOption {
   id: string
   first_name: string
@@ -21,7 +26,7 @@ export default function AddSessionModal({ leads, onClose, onSuccess }: AddSessio
   const [formation, setFormation] = useState<string>('beatmaking')
   const [format, setFormat] = useState<FormationFormat>('semaine')
   const [day, setDay] = useState<FormationDay | ''>('')
-  const [dateRef, setDateRef] = useState('') // date de référence : semaine du / mois / jour 1
+  const [dateRef, setDateRef] = useState(() => todayYYYYMMDD()) // date de référence : défaut = aujourd'hui
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -37,18 +42,18 @@ export default function AddSessionModal({ leads, onClose, onSuccess }: AddSessio
       ]
     }
     if (format === 'mensuelle' && (day === 'samedi' || day === 'dimanche')) {
-      const year = d.getFullYear()
-      const month = d.getMonth()
       const targetDay = day === 'samedi' ? 6 : 0
-      const dates: string[] = []
-      const daysInMonth = new Date(year, month + 1, 0).getDate()
-      for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
-        const date = new Date(year, month, dayNum)
-        if (date.getDay() === targetDay) {
-          dates.push(date.toISOString().split('T')[0])
-        }
+      const cursor = new Date(d)
+      cursor.setHours(12, 0, 0, 0)
+      while (cursor.getDay() !== targetDay) {
+        cursor.setDate(cursor.getDate() + 1)
       }
-      return dates.length >= 4 ? dates.slice(0, 4) : null
+      const dates: string[] = []
+      for (let i = 0; i < 4; i++) {
+        dates.push(cursor.toISOString().split('T')[0])
+        cursor.setDate(cursor.getDate() + 7)
+      }
+      return dates
     }
     return null
   }

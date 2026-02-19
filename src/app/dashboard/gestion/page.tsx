@@ -6,8 +6,6 @@ import { getCurrentUser } from '@/lib/auth'
 import GestionTable from '@/components/gestion/GestionTable'
 import AutoRelanceChecker from '@/components/gestion/AutoRelanceChecker'
 import { isDemoMode, getDemoLeads, getDemoUser, getDemoClosers } from '@/lib/demo-data'
-import { syncLeadToPlanning } from '@/lib/planning-sync'
-
 export default async function GestionPage() {
   const cookieStore = await cookies()
   const demoSession = cookieStore.get('demo_session')?.value === '1'
@@ -90,28 +88,7 @@ export default async function GestionPage() {
     .in('status', ['clos', 'acompte_regle'])
     .order('created_at', { ascending: false })
 
-  // Sync systématique : chaque lead closé doit avoir une session au planning
-  const closedIds = (closedLeads || []).map((l: { id: string }) => l.id)
-  const inPlanningIds = new Set<string>()
-  try {
-    const { data: plRows } = await adminClient.from('planning_lead').select('lead_id')
-    for (const r of plRows || []) {
-      if (r.lead_id) inPlanningIds.add(r.lead_id)
-    }
-  } catch {
-    // Table planning_lead peut ne pas exister
-  }
-  try {
-    const { data: planningWithLeadId } = await adminClient.from('planning').select('lead_id')
-    for (const p of planningWithLeadId || []) {
-      if (p.lead_id) inPlanningIds.add(p.lead_id)
-    }
-  } catch {
-    // Colonne lead_id peut être absente
-  }
-  for (const leadId of closedIds.filter((id: string) => !inPlanningIds.has(id))) {
-    await syncLeadToPlanning(adminClient, leadId)
-  }
+  // Plus de sync auto : les sessions se créent à la main sur la page Planning
 
   // Récupérer les informations des closers pour les leads closés
   const closerIds = [...new Set((closedLeads || []).map(l => l.closer_id).filter(Boolean))]

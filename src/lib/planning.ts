@@ -61,38 +61,31 @@ export function calculateFormationDates(
     result.startDate = monday
     result.endDate = friday
   } else if (format === 'mensuelle') {
-    // Mensuelle = 4 samedis ou dimanches du mois de la date choisie
+    // Mensuelle = 4 samedis ou dimanches à partir du jour choisi (peuvent dépasser sur le mois suivant)
     if (day !== 'samedi' && day !== 'dimanche') {
       throw new Error('Jour invalide pour le format mensuelle (doit être samedi ou dimanche)')
     }
 
-    const selectedDate = new Date(startDate)
-    const year = selectedDate.getFullYear()
-    const month = selectedDate.getMonth() // 0-11
-
-    // Trouver tous les samedis ou dimanches du mois
     const targetDay = day === 'samedi' ? 6 : 0
     const dates: Date[] = []
+    const cursor = new Date(startDate)
+    cursor.setHours(12, 0, 0, 0)
 
-    // Parcourir tous les jours du mois
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month, day)
-      if (date.getDay() === targetDay) {
-        dates.push(date)
-      }
+    // Trouver le prochain samedi/dimanche à partir de la date (inclus)
+    while (cursor.getDay() !== targetDay) {
+      cursor.setDate(cursor.getDate() + 1)
     }
 
-    if (dates.length < 4) {
-      throw new Error(`Pas assez de ${day}s dans ce mois (trouvé ${dates.length}, besoin de 4)`)
+    // Collecter les 4 prochaines occurrences (peuvent chevaucher le mois suivant)
+    for (let i = 0; i < 4; i++) {
+      dates.push(new Date(cursor))
+      cursor.setDate(cursor.getDate() + 7)
     }
 
-    // Prendre les 4 premiers
     const firstDate = dates[0]
-    firstDate.setHours(9, 0, 0, 0) // 9h du matin
-
-    const lastDate = dates[3] // 4ème occurrence
-    lastDate.setHours(17, 0, 0, 0) // 17h
+    firstDate.setHours(9, 0, 0, 0)
+    const lastDate = dates[3]
+    lastDate.setHours(17, 0, 0, 0)
 
     result.startDate = firstDate
     result.endDate = lastDate

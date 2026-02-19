@@ -5,7 +5,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import PlanningView from '@/components/planning/PlanningView'
 import PlanningClient from '@/components/planning/PlanningClient'
 import { isDemoMode } from '@/lib/demo-data'
-import { syncLeadToPlanning, deduplicatePlanningSessions } from '@/lib/planning-sync'
+// Toujours exécuter côté serveur pour avoir les créneaux à jour (évite cache navigation)
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default async function PlanningPage() {
   const cookieStore = await cookies()
@@ -33,36 +35,14 @@ export default async function PlanningPage() {
 
   const adminClient = createAdminClient()
 
+  // Leads Clos / Acompte : uniquement pour la liste des participants dans "Ajouter une session"
   const { data: leads } = await adminClient
     .from('leads')
     .select('id, first_name, last_name')
     .in('status', ['clos', 'acompte_regle'])
     .order('last_name', { ascending: true })
 
-  const closedLeadIds = (leads || []).map((l: { id: string }) => l.id)
-  const inPlanningIds = new Set<string>()
-  try {
-    const { data: plRows } = await adminClient.from('planning_lead').select('lead_id')
-    for (const r of plRows || []) {
-      if (r.lead_id) inPlanningIds.add(r.lead_id)
-    }
-  } catch {
-    // Table planning_lead peut ne pas exister
-  }
-  try {
-    const { data: planningWithLeadId } = await adminClient.from('planning').select('lead_id')
-    for (const p of planningWithLeadId || []) {
-      if (p.lead_id) inPlanningIds.add(p.lead_id)
-    }
-  } catch {
-    // Colonne lead_id peut être absente
-  }
-  const missingInPlanning = closedLeadIds.filter((id: string) => !inPlanningIds.has(id))
-  for (const leadId of missingInPlanning) {
-    await syncLeadToPlanning(adminClient, leadId)
-  }
-
-  await deduplicatePlanningSessions(adminClient)
+  // Plus de création automatique de sessions : tout se fait à la main via "Ajouter une session"
 
   let planningRaw: any[] = []
   let planningLeadRows: { planning_id: string; lead_id: string }[] = []
@@ -71,6 +51,7 @@ export default async function PlanningPage() {
     .from('planning')
     .select('*')
     .order('start_date', { ascending: true })
+    .order('id', { ascending: true })
 
   if (planningRes.error) {
     console.error('Error fetching planning:', planningRes.error)
@@ -145,6 +126,8 @@ export default async function PlanningPage() {
   const merged: any[] = []
   for (const [, group] of byDateKey) {
     if (group.length === 0) continue
+    // Tri par id pour que la même session "représentante" soit toujours choisie à chaque actualisation
+    group.sort((a: any, b: any) => (a.id || '').localeCompare(b.id || ''))
     if (group.length === 1) {
       merged.push(group[0])
       continue

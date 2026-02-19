@@ -192,12 +192,6 @@ export default function LeadDetailModal({ lead, currentUser, onClose, isDemo }: 
         .eq('id', lead.id)
 
       if (!error) {
-        // À chaque sauvegarde : sync planning (retrait si KO/autre, ajout si Clos/Acompte réglé)
-        await fetch('/api/planning/sync-lead', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ leadId: lead.id }),
-        })
         await fetch('/api/revalidate-dashboard').catch(() => {})
         router.refresh()
         onClose()

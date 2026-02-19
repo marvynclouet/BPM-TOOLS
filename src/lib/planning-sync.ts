@@ -10,6 +10,7 @@ export async function deduplicatePlanningSessions(
   const { data: allRows } = await adminClient
     .from('planning')
     .select('id, start_date, end_date')
+    .order('id', { ascending: true })
   if (!allRows?.length) return { merged: 0 }
 
   const byKey = new Map<string, { id: string }[]>()
@@ -22,6 +23,8 @@ export async function deduplicatePlanningSessions(
   let merged = 0
   for (const [, ids] of byKey) {
     if (ids.length <= 1) continue
+    // Toujours garder le même id (le plus petit) pour un résultat stable à chaque actualisation
+    ids.sort((a, b) => a.id.localeCompare(b.id))
     const keepId = ids[0].id
     const toRemove = ids.slice(1).map((r) => r.id)
     const allLeadIds = new Set<string>()
@@ -51,7 +54,11 @@ export async function deduplicatePlanningSessions(
         if (keepRow?.lead_id) allLeadIds.add(keepRow.lead_id)
 
         for (const leadId of allLeadIds) {
-          await adminClient.from('planning_lead').insert({ planning_id: keepId, lead_id: leadId }).then(() => {}).catch(() => {})
+          try {
+            await adminClient.from('planning_lead').insert({ planning_id: keepId, lead_id: leadId })
+          } catch {
+            // table planning_lead may not exist
+          }
         }
         await adminClient.from('planning_lead').delete().in('planning_id', toRemove)
       }
@@ -152,23 +159,13 @@ export async function syncLeadToPlanning(
         dates.endDate.toISOString().split('T')[0],
       ]
     } else if (format === 'mensuelle' && (day === 'samedi' || day === 'dimanche')) {
-      const year = startDate.getFullYear()
-      const month = startDate.getMonth()
-      const targetDay = day === 'samedi' ? 6 : 0
-      const datesArray: Date[] = []
-      const daysInMonth = new Date(year, month + 1, 0).getDate()
-      for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
-        const date = new Date(year, month, dayNum)
-        if (date.getDay() === targetDay) datesArray.push(date)
-      }
-      if (datesArray.length >= 4) {
-        specificDates = datesArray.slice(0, 4).map(d => {
-          const y = d.getFullYear()
-          const m = String(d.getMonth() + 1).padStart(2, '0')
-          const dayNum = String(d.getDate()).padStart(2, '0')
-          return `${y}-${m}-${dayNum}`
-        })
-      }
+      // 4 samedis/dimanches à partir de la date (peuvent chevaucher le mois suivant) — même logique que planning.ts
+      specificDates = [
+        dates.startDate.toISOString().split('T')[0],
+        new Date(dates.startDate.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        new Date(dates.startDate.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        new Date(dates.startDate.getTime() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      ]
     }
 
     const startIso = dates.startDate.toISOString()

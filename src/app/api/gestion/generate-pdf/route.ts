@@ -6,7 +6,7 @@ import { generateConvocationPDF, generateInvoicePDF, generateAttestationPDF } fr
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { leadId } = body
+    const { leadId, type = 'attestation' } = body as { leadId?: string; type?: 'facture' | 'attestation' | 'convocation' }
 
     if (!leadId) {
       return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
@@ -133,8 +133,23 @@ export async function POST(request: NextRequest) {
       representativeName: representativeName,
     })
 
-    // Pour l'instant, on retourne l'attestation (document principal)
-    // TODO: Utiliser pdf-lib pour combiner les trois PDFs si nécessaire
+    // Retourner le document demandé (facture, convocation ou attestation)
+    if (type === 'facture') {
+      return new NextResponse(invoicePDF as any, {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="facture-${lead.first_name}-${lead.last_name}.pdf"`,
+        },
+      })
+    }
+    if (type === 'convocation') {
+      return new NextResponse(convocationPDF as any, {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="convocation-${lead.first_name}-${lead.last_name}.pdf"`,
+        },
+      })
+    }
     return new NextResponse(attestationPDF as any, {
       headers: {
         'Content-Type': 'application/pdf',
