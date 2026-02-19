@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale/fr'
 import WhatsAppGroupModal from './WhatsAppGroupModal'
@@ -36,16 +37,23 @@ interface ClosedLead {
     full_name: string | null
     email: string
   } | null
+  acompte_paid?: number
+  remaining_amount?: number | null
+  accounting_entry_id?: string | null
 }
 
 interface GestionRowProps {
   lead: ClosedLead
   showWhatsAppGroup?: boolean
   showDocuments?: boolean
+  showAcompteEnCours?: boolean
 }
 
-export default function GestionRow({ lead, showWhatsAppGroup = false, showDocuments = true }: GestionRowProps) {
+export default function GestionRow({ lead, showWhatsAppGroup = false, showDocuments = true, showAcompteEnCours = false }: GestionRowProps) {
+  const router = useRouter()
   const [loading, setLoading] = useState<string | null>(null)
+  const [editingAcompteField, setEditingAcompteField] = useState<'acompte_paid' | 'remaining_amount' | null>(null)
+  const [editAcompteValue, setEditAcompteValue] = useState('')
 
   const formationLabels: Record<string, string> = {
     inge_son: 'Ingé son',
@@ -130,15 +138,14 @@ export default function GestionRow({ lead, showWhatsAppGroup = false, showDocume
     return 'Dates non définies'
   }
 
-  const handleGeneratePDF = async () => {
-    setLoading('generate-pdf')
+  const handleGeneratePDF = async (type: 'attestation' | 'facture') => {
+    const loadingKey = type === 'attestation' ? 'generate-attestation' : 'generate-facture'
+    setLoading(loadingKey)
     try {
       const response = await fetch('/api/gestion/generate-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          leadId: lead.id,
-        }),
+        body: JSON.stringify({ leadId: lead.id, type }),
       })
 
       if (!response.ok) {
@@ -150,13 +157,14 @@ export default function GestionRow({ lead, showWhatsAppGroup = false, showDocume
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `documents-${lead.first_name}-${lead.last_name}.pdf`
+      a.download = type === 'attestation'
+        ? `attestation-${lead.first_name}-${lead.last_name}.pdf`
+        : `facture-${lead.first_name}-${lead.last_name}.pdf`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      
-      alert('PDF généré avec succès !')
+      alert(type === 'attestation' ? 'Attestation générée avec succès !' : 'Facture générée avec succès !')
     } catch (error: any) {
       alert(`Erreur: ${error.message}`)
     } finally {
@@ -369,13 +377,111 @@ export default function GestionRow({ lead, showWhatsAppGroup = false, showDocume
         <div className="text-sm font-semibold text-white">
           {lead.price_fixed ? `${lead.price_fixed.toFixed(2)} €` : '-'}
         </div>
-        {lead.price_deposit && lead.price_deposit > 0 && (
+        {!showAcompteEnCours && lead.price_deposit && lead.price_deposit > 0 && (
           <div className="text-xs text-white/40 font-light">
             Acompte: {lead.price_deposit.toFixed(2)} €
           </div>
         )}
       </td>
-      {showDocuments && (
+      {showAcompteEnCours && (
+        <>
+          <td className="px-6 py-4 whitespace-nowrap">
+            {editingAcompteField === 'acompte_paid' ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editAcompteValue}
+                  onChange={(e) => setEditAcompteValue(e.target.value)}
+                  className="w-24 px-2 py-1 rounded bg-white/10 text-white text-sm border border-white/20"
+                />
+                <span className="text-white/60 text-sm">€</span>
+                <button
+                  onClick={async () => {
+                    if (!lead.accounting_entry_id) return
+                    const num = parseFloat(editAcompteValue.replace(',', '.'))
+                    if (isNaN(num) || num < 0) { alert('Montant invalide'); return }
+                    setLoading('acompte_paid')
+                    try {
+                      const res = await fetch('/api/accounting/update', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ entryId: lead.accounting_entry_id, field: 'amount', value: num }),
+                      })
+                      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Erreur') }
+                      setEditingAcompteField(null)
+                      router.refresh()
+                    } catch (err: any) { alert(err.message || 'Erreur') } finally { setLoading(null) }
+                  }}
+                  disabled={loading === 'acompte_paid'}
+                  className="px-2 py-1 rounded bg-green-500/20 text-green-300 text-xs font-medium disabled:opacity-50"
+                >
+                  {loading === 'acompte_paid' ? '...' : 'OK'}
+                </button>
+                <button type="button" onClick={() => { setEditingAcompteField(null); setEditAcompteValue('') }} className="px-2 py-1 rounded bg-white/10 text-white text-xs">Annuler</button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-white">
+                  {lead.acompte_paid != null ? `${Number(lead.acompte_paid).toFixed(2)} €` : '-'}
+                </span>
+                {lead.accounting_entry_id && (
+                  <button type="button" onClick={() => { setEditingAcompteField('acompte_paid'); setEditAcompteValue(String(lead.acompte_paid ?? '')) }} className="text-white/40 hover:text-white text-xs" title="Modifier">✏️</button>
+                )}
+              </div>
+            )}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap">
+            {editingAcompteField === 'remaining_amount' ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editAcompteValue}
+                  onChange={(e) => setEditAcompteValue(e.target.value)}
+                  className="w-24 px-2 py-1 rounded bg-white/10 text-white text-sm border border-white/20"
+                />
+                <span className="text-white/60 text-sm">€</span>
+                <button
+                  onClick={async () => {
+                    if (!lead.accounting_entry_id) return
+                    const num = parseFloat(editAcompteValue.replace(',', '.'))
+                    if (isNaN(num) || num < 0) { alert('Montant invalide'); return }
+                    setLoading('remaining_amount')
+                    try {
+                      const res = await fetch('/api/accounting/update', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ entryId: lead.accounting_entry_id, field: 'remaining_amount', value: num }),
+                      })
+                      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Erreur') }
+                      setEditingAcompteField(null)
+                      router.refresh()
+                    } catch (err: any) { alert(err.message || 'Erreur') } finally { setLoading(null) }
+                  }}
+                  disabled={loading === 'remaining_amount'}
+                  className="px-2 py-1 rounded bg-green-500/20 text-green-300 text-xs font-medium disabled:opacity-50"
+                >
+                  {loading === 'remaining_amount' ? '...' : 'OK'}
+                </button>
+                <button type="button" onClick={() => { setEditingAcompteField(null); setEditAcompteValue('') }} className="px-2 py-1 rounded bg-white/10 text-white text-xs">Annuler</button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-amber-300">
+                  {lead.remaining_amount != null ? `${Number(lead.remaining_amount).toFixed(2)} €` : '-'}
+                </span>
+                {lead.accounting_entry_id && (
+                  <button type="button" onClick={() => { setEditingAcompteField('remaining_amount'); setEditAcompteValue(String(lead.remaining_amount ?? '')) }} className="text-white/40 hover:text-white text-xs" title="Modifier">✏️</button>
+                )}
+              </div>
+            )}
+          </td>
+        </>
+      )}
+      {(showDocuments || showAcompteEnCours) && (
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm text-white/70">
             {lead.closer ? (
@@ -396,17 +502,63 @@ export default function GestionRow({ lead, showWhatsAppGroup = false, showDocume
         </td>
       )}
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center gap-2">
-          {/* Bouton 1 : Générer documents et envoyer (uniquement pour leads closés) */}
-          {showDocuments && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Acomptes en cours : lien compta + marquer solde réglé */}
+          {showAcompteEnCours && (
+            <div className="flex flex-col gap-1">
+              <a
+                href="/dashboard/comptabilite"
+                className="px-3 py-1.5 bg-white/10 text-white rounded-lg text-xs font-medium hover:bg-white/20 transition text-center"
+              >
+                📊 Voir en compta
+              </a>
+              <button
+                onClick={async () => {
+                  if (!confirm('Marquer le solde comme réglé pour cet élève ?')) return
+                  setLoading('mark-solde')
+                  try {
+                    const res = await fetch('/api/leads/mark-payment', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ leadId: lead.id, paymentType: 'complet' }),
+                    })
+                    if (!res.ok) {
+                      const d = await res.json().catch(() => ({}))
+                      throw new Error(d.error || 'Erreur')
+                    }
+                    alert('Solde marqué comme réglé. L\'élève passe en Clos.')
+                    window.location.reload()
+                  } catch (err: any) {
+                    alert(err.message || 'Erreur')
+                  } finally {
+                    setLoading(null)
+                  }
+                }}
+                disabled={loading === 'mark-solde'}
+                className="px-3 py-1.5 bg-green-500/20 text-green-300 rounded-lg text-xs font-medium hover:bg-green-500/30 transition disabled:opacity-50"
+              >
+                {loading === 'mark-solde' ? '...' : '✅ Marquer solde réglé'}
+              </button>
+            </div>
+          )}
+          {/* Générer documents et envoyer (uniquement pour leads clos) */}
+          {showDocuments && !showAcompteEnCours && (
             <div className="flex flex-col gap-1">
               <button
-                onClick={() => handleGeneratePDF()}
-                disabled={loading === 'generate-pdf'}
+                onClick={() => handleGeneratePDF('attestation')}
+                disabled={loading === 'generate-attestation'}
                 className="px-3 py-1.5 bg-purple-500/20 text-purple-300 rounded-lg text-xs font-medium hover:bg-purple-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Générer l'attestation et la facture en PDF"
+                title="Télécharger l'attestation d'inscription en PDF"
               >
-                {loading === 'generate-pdf' ? '...' : '📄 Générer attestation et facture'}
+                {loading === 'generate-attestation' ? '...' : '📄 Générer attestation'}
+              </button>
+              <button
+                onClick={() => handleGeneratePDF('facture')}
+                disabled={loading === 'generate-facture'}
+                className="px-3 py-1.5 bg-indigo-500/20 text-indigo-300 rounded-lg text-xs font-medium hover:bg-indigo-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Télécharger la facture en PDF"
+              >
+                {loading === 'generate-facture' ? '...' : '🧾 Générer facture'}
               </button>
               {lead.documents_sent_at ? (
                 <div
@@ -437,8 +589,49 @@ export default function GestionRow({ lead, showWhatsAppGroup = false, showDocume
               )}
             </div>
           )}
+          {showDocuments && showAcompteEnCours && (
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => handleGeneratePDF('attestation')}
+                disabled={loading === 'generate-attestation'}
+                className="px-3 py-1.5 bg-purple-500/20 text-purple-300 rounded-lg text-xs font-medium hover:bg-purple-500/30 transition disabled:opacity-50"
+              >
+                {loading === 'generate-attestation' ? '...' : '📄 Générer attestation'}
+              </button>
+              <button
+                onClick={() => handleGeneratePDF('facture')}
+                disabled={loading === 'generate-facture'}
+                className="px-3 py-1.5 bg-indigo-500/20 text-indigo-300 rounded-lg text-xs font-medium hover:bg-indigo-500/30 transition disabled:opacity-50"
+              >
+                {loading === 'generate-facture' ? '...' : '🧾 Générer facture'}
+              </button>
+              {!lead.documents_sent_at && lead.email && (
+                <>
+                  <button
+                    onClick={() => handleGenerateDocuments('email')}
+                    disabled={loading === 'documents-email'}
+                    className="px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-lg text-xs font-medium hover:bg-blue-500/30 transition disabled:opacity-50"
+                  >
+                    {loading === 'documents-email' ? '...' : '📧 Envoyer par email'}
+                  </button>
+                  <button
+                    onClick={() => handleGenerateDocuments('whatsapp')}
+                    disabled={loading === 'documents-whatsapp'}
+                    className="px-3 py-1.5 bg-green-500/20 text-green-300 rounded-lg text-xs font-medium hover:bg-green-500/30 transition disabled:opacity-50"
+                  >
+                    {loading === 'documents-whatsapp' ? '...' : '💬 Envoyer par WhatsApp'}
+                  </button>
+                </>
+              )}
+              {lead.documents_sent_at && (
+                <div className="px-3 py-1.5 bg-green-500/20 text-green-300 rounded-lg text-xs font-medium">
+                  ✅ Documents envoyés
+                </div>
+              )}
+            </div>
+          )}
 
-          {/* Bouton 2 : Ouvrir conversation WhatsApp (uniquement pour leads chauds) */}
+          {/* Ouvrir conversation WhatsApp (uniquement pour leads chauds) */}
           {showWhatsAppGroup && (
             <div className="flex flex-col gap-2">
               {lead.whatsapp_conversation_started_at ? (

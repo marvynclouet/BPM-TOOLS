@@ -12,49 +12,55 @@ const COLORS = {
   accent: [0, 0, 0], // Noir pour les accents
 }
 
-// Fonction pour charger le logo en base64 (convertit WEBP en PNG si nécessaire)
-// Compatible Vercel : essaie d'abord avec fs (local), puis fetch (production)
-async function getLogoBase64(): Promise<string | null> {
+// Logo chargé avec dimensions pour préserver le ratio (éviter logo écrasé)
+type LogoData = { base64: string; width: number; height: number }
+
+async function getLogoData(): Promise<LogoData | null> {
   try {
     // Essayer d'abord avec fs (pour développement local et build)
     try {
-      // Essayer d'abord le nouveau logo webp
       const logoWebpPath = path.join(process.cwd(), 'public', 'logo-bpm-formations.webp')
       if (fs.existsSync(logoWebpPath)) {
-        // Convertir WEBP en PNG avec sharp
-        const pngBuffer = await sharp(logoWebpPath).png().toBuffer()
-        return `data:image/png;base64,${pngBuffer.toString('base64')}`
+        const pipeline = sharp(logoWebpPath)
+        const meta = await pipeline.metadata()
+        const pngBuffer = await pipeline.png().toBuffer()
+        const w = meta.width ?? 1
+        const h = meta.height ?? 1
+        return { base64: `data:image/png;base64,${pngBuffer.toString('base64')}`, width: w, height: h }
       }
-      // Sinon utiliser l'ancien logo PNG
       const logoPngPath = path.join(process.cwd(), 'public', 'logo-bpm-tools.png')
       if (fs.existsSync(logoPngPath)) {
         const logoBuffer = fs.readFileSync(logoPngPath)
-        return `data:image/png;base64,${logoBuffer.toString('base64')}`
+        const meta = await sharp(logoBuffer).metadata()
+        const w = meta.width ?? 1
+        const h = meta.height ?? 1
+        return { base64: `data:image/png;base64,${logoBuffer.toString('base64')}`, width: w, height: h }
       }
     } catch (fsError) {
       // Si fs échoue (Vercel serverless), essayer avec fetch
       try {
-        // Sur Vercel, utiliser l'URL publique
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL 
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL
           || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
           || 'http://localhost:3000'
-        
-        // Essayer d'abord le nouveau logo webp
         const webpUrl = `${baseUrl}/logo-bpm-formations.webp`
         const webpResponse = await fetch(webpUrl)
         if (webpResponse.ok) {
           const webpBuffer = Buffer.from(await webpResponse.arrayBuffer())
-          // Convertir WEBP en PNG avec sharp
-          const pngBuffer = await sharp(webpBuffer).png().toBuffer()
-          return `data:image/png;base64,${pngBuffer.toString('base64')}`
+          const pipeline = sharp(webpBuffer)
+          const meta = await pipeline.metadata()
+          const pngBuffer = await pipeline.png().toBuffer()
+          const w = meta.width ?? 1
+          const h = meta.height ?? 1
+          return { base64: `data:image/png;base64,${pngBuffer.toString('base64')}`, width: w, height: h }
         }
-        
-        // Sinon utiliser l'ancien logo PNG
         const pngUrl = `${baseUrl}/logo-bpm-tools.png`
         const pngResponse = await fetch(pngUrl)
         if (pngResponse.ok) {
           const pngBuffer = Buffer.from(await pngResponse.arrayBuffer())
-          return `data:image/png;base64,${pngBuffer.toString('base64')}`
+          const meta = await sharp(pngBuffer).metadata()
+          const w = meta.width ?? 1
+          const h = meta.height ?? 1
+          return { base64: `data:image/png;base64,${pngBuffer.toString('base64')}`, width: w, height: h }
         }
       } catch (fetchError) {
         console.error('Erreur chargement logo (fetch):', fetchError)
@@ -84,23 +90,30 @@ function addHeader(doc: jsPDF, title: string) {
   doc.line(20, 48, 190, 48)
 }
 
-// Fonction utilitaire pour ajouter un logo en bas du document
+// Fonction utilitaire pour ajouter un logo en bas du document (ratio préservé, pas écrasé)
 async function addLogoAtBottom(doc: jsPDF) {
-  const logoBase64 = await getLogoBase64()
+  const logoData = await getLogoData()
   const pageHeight = doc.internal.pageSize.height
-  
-  if (logoBase64) {
+  const pageWidth = doc.internal.pageSize.width
+
+  if (logoData) {
     try {
-      // Logo en bas, centré - taille plus grande et non compressée
-      // Calculer les dimensions pour maintenir le ratio d'aspect (environ 2:1 pour un logo)
-      const logoWidth = 100 // Augmenté pour éviter la compression
-      const logoHeight = 40 // Augmenté proportionnellement
-      const x = (210 - logoWidth) / 2 // Centrer sur une page A4 (210mm)
-      const y = pageHeight - 50 // Un peu plus haut pour éviter le bord
-      
-      // Ajouter l'image avec compression minimale
-      // Utiliser 'MEDIUM' ou 'SLOW' pour meilleure qualité, ou pas de compression
-      doc.addImage(logoBase64, 'PNG', x, y, logoWidth, logoHeight, undefined, 'MEDIUM')
+      // Boîte max en mm (A4) : largeur 90, hauteur 50 — on respecte le ratio du logo
+      const maxW = 90
+      const maxH = 50
+      const ratio = logoData.width / logoData.height
+      let w: number
+      let h: number
+      if (ratio > maxW / maxH) {
+        w = maxW
+        h = maxW / ratio
+      } else {
+        h = maxH
+        w = maxH * ratio
+      }
+      const x = (pageWidth - w) / 2
+      const y = pageHeight - 55
+      doc.addImage(logoData.base64, 'PNG', x, y, w, h, undefined, 'MEDIUM')
     } catch (error) {
       console.error('Erreur ajout logo:', error)
     }
@@ -202,7 +215,7 @@ export async function generateConvocationPDF(data: ConvocationData): Promise<Buf
   yPos += 6
   doc.text('Horaires : 9h00 - 17h00', 25, yPos)
   yPos += 6
-  doc.text('Lieu : À confirmer', 25, yPos)
+  doc.text('Lieu : 10 rue de Paris, Piscop', 25, yPos)
   yPos += 10
   
   // Instructions
@@ -250,18 +263,17 @@ export async function generateConvocationPDF(data: ConvocationData): Promise<Buf
 
 export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
   const doc = new jsPDF()
-  
-  // En-tête professionnel
+  const total = data.amount
+
   addHeader(doc, 'FACTURE')
-  
-  let yPos = 60
-  
-  // Informations client (à gauche)
+
+  let yPos = 58
+
   doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
   doc.text('Facturé à :', 20, yPos)
   yPos += 6
-  
+
   doc.setFont('helvetica', 'normal')
   doc.text(`${data.firstName} ${data.lastName}`, 20, yPos)
   yPos += 6
@@ -273,87 +285,105 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
     doc.text(`Email : ${data.email}`, 20, yPos)
     yPos += 6
   }
-  
-  // Date de facturation (à droite)
-  const dateStr = data.date.toLocaleDateString('fr-FR', { 
-    day: 'numeric', 
-    month: 'long', 
-    year: 'numeric' 
+
+  const dateStr = data.date.toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
   })
   doc.setFont('helvetica', 'bold')
-  doc.text(`Date : ${dateStr}`, 150, 60, { align: 'right' })
-  
-  yPos += 10
-  
-  // Tableau des prestations
-  doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2])
-  doc.setLineWidth(0.5)
-  
-  // En-tête du tableau
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10)
-  doc.rect(20, yPos, 170, 8)
-  doc.text('Désignation', 25, yPos + 5.5)
-  doc.text('Quantité', 120, yPos + 5.5)
-  doc.text('Prix unitaire', 150, yPos + 5.5, { align: 'right' })
-  doc.text('Total', 190, yPos + 5.5, { align: 'right' })
-  
-  yPos += 8
-  
-  // Ligne de prestation
+  doc.text(`Date : ${dateStr}`, 190, 58, { align: 'right' })
   doc.setFont('helvetica', 'normal')
+
+  yPos = Math.max(yPos, 78) + 8
+
+  const tableLeft = 20
+  const tableRight = 190
+  const tableWidth = tableRight - tableLeft
+  const colDesignationEnd = 102
+  const colQteEnd = 118
+  const colPrixEnd = 155
+  const rowH = 9
+  const rowHData = 12
+  const pad = 4
+
+  doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2])
+  doc.setLineWidth(0.4)
+
+  doc.rect(tableLeft, yPos, tableWidth, rowH)
+  doc.line(colDesignationEnd, yPos, colDesignationEnd, yPos + rowH)
+  doc.line(colQteEnd, yPos, colQteEnd, yPos + rowH)
+  doc.line(colPrixEnd, yPos, colPrixEnd, yPos + rowH)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9)
+  doc.text('Désignation', tableLeft + pad, yPos + 5.5, { maxWidth: colDesignationEnd - tableLeft - pad * 2 })
+  doc.text('Qté', colDesignationEnd + pad, yPos + 5.5, { maxWidth: colQteEnd - colDesignationEnd - pad })
+  doc.text('Prix unit.', colQteEnd + pad, yPos + 5.5, { maxWidth: colPrixEnd - colQteEnd - pad * 2 })
+  doc.text('Total', tableRight - pad, yPos + 5.5, { align: 'right' })
+
+  yPos += rowH
+
   const formationLabels: Record<string, string> = {
     inge_son: 'Formation Ingénieur du son',
     beatmaking: 'Formation Beatmaking',
     autre: 'Formation professionnelle',
   }
   const formationLabel = formationLabels[data.formation] || data.formation
-  
-  doc.rect(20, yPos, 170, 8)
-  doc.text(formationLabel, 25, yPos + 5.5)
-  doc.text('1', 120, yPos + 5.5)
-  doc.text(`${data.amount.toFixed(2)} €`, 150, yPos + 5.5, { align: 'right' })
-  doc.text(`${data.amount.toFixed(2)} €`, 190, yPos + 5.5, { align: 'right' })
-  
-  yPos += 15
-  
-  // Détails de paiement
-  if (data.deposit > 0) {
-    doc.setFontSize(10)
-    doc.text('Détails de paiement :', 20, yPos)
-    yPos += 6
-    doc.text(`Acompte versé : ${data.deposit.toFixed(2)} €`, 25, yPos)
-    yPos += 6
-    const remaining = data.amount - data.deposit
-    doc.text(`Solde restant : ${remaining.toFixed(2)} €`, 25, yPos)
-    yPos += 8
-  }
-  
-  // Total
+  const designationWidth = colDesignationEnd - tableLeft - pad * 2
+
+  doc.rect(tableLeft, yPos, tableWidth, rowHData)
+  doc.line(colDesignationEnd, yPos, colDesignationEnd, yPos + rowHData)
+  doc.line(colQteEnd, yPos, colQteEnd, yPos + rowHData)
+  doc.line(colPrixEnd, yPos, colPrixEnd, yPos + rowHData)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.text(formationLabel, tableLeft + pad, yPos + 6, { maxWidth: designationWidth })
+  doc.text('1', colDesignationEnd + pad, yPos + 6, { maxWidth: colQteEnd - colDesignationEnd - pad })
+  doc.text(`${total.toFixed(2)} €`, colPrixEnd - pad, yPos + 6, { align: 'right', maxWidth: colPrixEnd - colQteEnd - pad * 2 })
+  doc.text(`${total.toFixed(2)} €`, tableRight - pad, yPos + 6, { align: 'right', maxWidth: tableRight - colPrixEnd - pad * 2 })
+
+  yPos += rowHData + 12
+
   doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2])
-  doc.setLineWidth(0.8)
-  doc.line(120, yPos, 190, yPos)
+  doc.setLineWidth(0.5)
+  doc.line(colPrixEnd, yPos, tableRight, yPos)
   yPos += 6
-  
+
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
-  doc.text('TOTAL TTC :', 120, yPos)
-  doc.text(`${data.amount.toFixed(2)} €`, 190, yPos, { align: 'right' })
-  
-  yPos += 15
-  
-  // Conditions de paiement
-  doc.setFontSize(9)
+  doc.text('Total :', tableLeft, yPos)
+  doc.text(`${total.toFixed(2)} €`, tableRight - pad, yPos, { align: 'right' })
+  yPos += 8
+
   doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
   doc.setTextColor(COLORS.secondary[0], COLORS.secondary[1], COLORS.secondary[2])
-  doc.text('Conditions de paiement :', 20, yPos)
+  doc.text('TVA non applicable, article 293 B du CGI', tableLeft, yPos)
+  doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2])
+  yPos += 8
+
+  if (data.deposit > 0) {
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Détails de paiement :', tableLeft, yPos)
+    yPos += 6
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Acompte versé : ${data.deposit.toFixed(2)} €`, tableLeft + 5, yPos)
+    yPos += 6
+    const remaining = total - data.deposit
+    doc.text(`Solde restant : ${remaining.toFixed(2)} €`, tableLeft + 5, yPos)
+    yPos += 10
+  }
+
+  doc.setFontSize(9)
+  doc.setTextColor(COLORS.secondary[0], COLORS.secondary[1], COLORS.secondary[2])
+  doc.text('Conditions de paiement :', tableLeft, yPos)
   yPos += 5
-  doc.text('Paiement par virement bancaire ou lien Stripe fourni', 25, yPos)
-  
-  // Pied de page
+  doc.text('Paiement par virement bancaire ou lien Stripe fourni', tableLeft + 5, yPos)
+  doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2])
+
   addFooter(doc, 1)
-  
-  // Générer le buffer
+
   const pdfBlob = doc.output('arraybuffer')
   return Buffer.from(pdfBlob)
 }
@@ -412,17 +442,17 @@ export async function generateAttestationPDF(data: AttestationData): Promise<Buf
   doc.text(`${data.firstName.toUpperCase()} ${data.lastName.toUpperCase()}`, 20, yPos)
   yPos += 10
   
-  // "est inscrite à la formation professionnelle suivante :"
+  // "est inscrit(e) à la formation professionnelle suivante :" (neutre pour les deux genres)
   doc.setFontSize(11)
   doc.setFont('helvetica', 'normal')
-  doc.text('est inscrite à la formation professionnelle suivante :', 20, yPos)
+  doc.text('est inscrit(e) à la formation professionnelle suivante :', 20, yPos)
   yPos += 10
   
   // Informations de la formation avec puces
   doc.setFontSize(10)
   
-  // Calculer la durée (35h pour mensuelle, 25h pour semaine)
-  const duration = data.formationFormat === 'mensuelle' ? 35 : 25
+  // Durée de la formation : 35 heures
+  const duration = 35
   
   // Utiliser le periodText fourni directement
   const periodText = data.periodText || 'Dates à définir'
@@ -452,7 +482,7 @@ export async function generateAttestationPDF(data: AttestationData): Promise<Buf
   yPos += 7
   
   doc.text('-', 20, yPos)
-  doc.text('Lieu : RF Studio', 25, yPos)
+  doc.text('Lieu : 10 rue de Paris, Piscop', 25, yPos)
   yPos += 10
   
   // Objectifs pédagogiques

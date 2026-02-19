@@ -35,61 +35,81 @@ export async function POST(request: NextRequest) {
       ? await adminClient.from('planning').select('*').eq('id', link.planning_id).single()
       : { data: null }
 
-    // Formater les dates pour l'attestation
-    const formatDatesForAttestation = () => {
-      if (!planningEntry) {
-        return { dates: 'Dates à définir', periodText: 'Dates à définir' }
+    // Formater les dates pour l'attestation (planning prioritaire, sinon lead formation_start_date/format/day)
+    const formatDatesForAttestation = (): { dates: string; periodText: string } => {
+      if (planningEntry) {
+        if (planningEntry.specific_dates && planningEntry.specific_dates.length > 0) {
+          const dates = planningEntry.specific_dates.slice(0, 4).map((d: string) => {
+            const date = new Date(d.includes('T') ? d.split('T')[0] : d)
+            return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
+          })
+          const datesStr = dates.join(', ')
+          const firstDate = new Date(planningEntry.specific_dates[0].includes('T') ? planningEntry.specific_dates[0].split('T')[0] : planningEntry.specific_dates[0])
+          const lastDate = new Date(planningEntry.specific_dates[planningEntry.specific_dates.length - 1].includes('T') ? planningEntry.specific_dates[planningEntry.specific_dates.length - 1].split('T')[0] : planningEntry.specific_dates[planningEntry.specific_dates.length - 1])
+          const dayName = firstDate.toLocaleDateString('fr-FR', { weekday: 'long' })
+          const firstDay = firstDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+          const lastDay = lastDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+          const dayPlural = dayName === 'dimanche' ? 'dimanches' : 'samedis'
+          const periodText = `du ${firstDay} au ${lastDay} sur 4 ${dayPlural}`
+          return { dates: datesStr, periodText }
+        }
+        if (planningEntry.start_date && planningEntry.end_date) {
+          const start = new Date(planningEntry.start_date)
+          const end = new Date(planningEntry.end_date)
+          const startFormatted = start.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+          const endFormatted = end.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+          const datesStr = `Du ${startFormatted} au ${endFormatted}`
+          return { dates: datesStr, periodText: datesStr }
+        }
       }
-      
-      if (planningEntry.specific_dates && planningEntry.specific_dates.length > 0) {
-        // Dates simples pour affichage
-        const dates = planningEntry.specific_dates.slice(0, 4).map((d: string) => {
-          const date = new Date(d.includes('T') ? d.split('T')[0] : d)
-          return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
-        })
-        const datesStr = dates.join(', ')
-        
-        // Pour la période formatée exactement comme le modèle
-        const firstDate = new Date(planningEntry.specific_dates[0].includes('T') ? planningEntry.specific_dates[0].split('T')[0] : planningEntry.specific_dates[0])
-        const lastDate = new Date(planningEntry.specific_dates[planningEntry.specific_dates.length - 1].includes('T') ? planningEntry.specific_dates[planningEntry.specific_dates.length - 1].split('T')[0] : planningEntry.specific_dates[planningEntry.specific_dates.length - 1])
-        
-        const dayName = firstDate.toLocaleDateString('fr-FR', { weekday: 'long' })
-        const firstDay = firstDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
-        const lastDay = lastDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
-        const dayPlural = dayName === 'dimanche' ? 'dimanches' : 'samedis'
-        const periodText = `du ${firstDay} au ${lastDay} sur 4 ${dayPlural}`
-        
-        return { dates: datesStr, periodText }
-      } else if (planningEntry.start_date && planningEntry.end_date) {
-        const start = new Date(planningEntry.start_date)
-        const end = new Date(planningEntry.end_date)
-        // Format: "Du 09/02/2026 au 13/02/2026"
-        const startFormatted = start.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-        const endFormatted = end.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-        const datesStr = `Du ${startFormatted} au ${endFormatted}`
+      // Fallback : dates fixes du lead (formation_start_date + formation_format + formation_day)
+      if (lead.formation_start_date && lead.formation_format) {
+        const startDate = new Date(lead.formation_start_date)
+        if (lead.formation_format === 'mensuelle' && lead.formation_day) {
+          const year = startDate.getFullYear()
+          const month = startDate.getMonth()
+          const targetDay = lead.formation_day === 'samedi' ? 6 : 0
+          const dates: Date[] = []
+          const daysInMonth = new Date(year, month + 1, 0).getDate()
+          for (let day = 1; day <= daysInMonth; day++) {
+            const d = new Date(year, month, day)
+            if (d.getDay() === targetDay) dates.push(d)
+          }
+          if (dates.length >= 4) {
+            const first = dates[0]
+            const last = dates[3]
+            const datesStr = dates.slice(0, 4).map(d => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })).join(', ')
+            const dayPlural = targetDay === 0 ? 'dimanches' : 'samedis'
+            const periodText = `du ${first.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} au ${last.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} sur 4 ${dayPlural}`
+            return { dates: datesStr, periodText }
+          }
+        }
+        if (lead.formation_format === 'semaine') {
+          const dayOfWeek = startDate.getDay() === 0 ? 7 : startDate.getDay()
+          const daysToMonday = dayOfWeek === 1 ? 0 : 1 - dayOfWeek
+          const monday = new Date(startDate)
+          monday.setDate(startDate.getDate() + daysToMonday)
+          const friday = new Date(monday)
+          friday.setDate(monday.getDate() + 4)
+          const datesStr = `Du ${monday.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })} au ${friday.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+          return { dates: datesStr, periodText: datesStr }
+        }
+        if (lead.formation_format === 'bpm_fast') {
+          const endDate = new Date(startDate)
+          endDate.setDate(startDate.getDate() + 1)
+          const datesStr = `Du ${startDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })} au ${endDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+          return { dates: datesStr, periodText: datesStr }
+        }
+        const datesStr = startDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
         return { dates: datesStr, periodText: datesStr }
       }
       return { dates: 'Dates à définir', periodText: 'Dates à définir' }
     }
     
-    // Formater les dates pour convocation/facture (format simple)
-    const formatDates = () => {
-      if (!planningEntry) {
-        return 'Dates à définir'
-      }
-      
-      if (planningEntry.specific_dates && planningEntry.specific_dates.length > 0) {
-        const dates = planningEntry.specific_dates.slice(0, 4).map((d: string) => {
-          const date = new Date(d.includes('T') ? d.split('T')[0] : d)
-          return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
-        })
-        return dates.join(', ')
-      } else if (planningEntry.start_date && planningEntry.end_date) {
-        const start = new Date(planningEntry.start_date)
-        const end = new Date(planningEntry.end_date)
-        return `Du ${start.toLocaleDateString('fr-FR')} au ${end.toLocaleDateString('fr-FR')}`
-      }
-      return 'Dates à définir'
+    // Formater les dates pour convocation/facture (planning prioritaire, sinon lead)
+    const formatDates = (): string => {
+      const info = formatDatesForAttestation()
+      return info.dates
     }
     
     const datesInfo = formatDatesForAttestation()

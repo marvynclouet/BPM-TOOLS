@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale/fr'
 
@@ -44,10 +44,16 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
     commission_formateur: entry.commission_formateur,
     remaining_amount: entry.remaining_amount,
   })
+  const [displayOverride, setDisplayOverride] = useState<{ remaining_amount?: number | null; commission_closer?: number; commission_formateur?: number; amount?: number } | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadingInvoice, setLoadingInvoice] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState(false)
+
+  useEffect(() => {
+    setEditValues({ amount: entry.amount, commission_closer: entry.commission_closer, commission_formateur: entry.commission_formateur, remaining_amount: entry.remaining_amount })
+    setDisplayOverride(null)
+  }, [entry.id, entry.amount, entry.remaining_amount, entry.commission_closer, entry.commission_formateur])
 
   const formationLabels: Record<string, string> = {
     inge_son: 'Ingé son',
@@ -86,12 +92,16 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
         }),
       })
 
+      const data = await response.json().catch(() => ({}))
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Erreur lors de la mise à jour')
+        throw new Error(data.error || 'Erreur lors de la mise à jour')
       }
 
       setEditingField(null)
+      if (data.updated) {
+        setEditValues(prev => ({ ...prev, ...data.updated }))
+        setDisplayOverride(data.updated)
+      }
       onUpdate()
     } catch (error: any) {
       alert(`Erreur: ${error.message}`)
@@ -221,6 +231,8 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
 
   const lead = entry.leads
   const payment = entry.payments
+  const disp = (k: 'amount' | 'remaining_amount' | 'commission_closer' | 'commission_formateur') =>
+    displayOverride && displayOverride[k] !== undefined ? displayOverride[k] : entry[k]
 
   return (
     <tr className="hover:bg-white/5 transition-colors">
@@ -270,7 +282,7 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
             onClick={() => handleFieldClick('amount')}
             title="Cliquez pour modifier"
           >
-            {Number(entry.amount).toFixed(2)} €
+            {Number(disp('amount')).toFixed(2)} €
           </div>
         )}
       </td>
@@ -298,8 +310,8 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
             onClick={() => handleFieldClick('remaining_amount')}
             title="Cliquez pour modifier"
           >
-            {entry.remaining_amount !== null && entry.remaining_amount > 0
-              ? `${entry.remaining_amount.toFixed(2)} €`
+            {(disp('remaining_amount') ?? null) !== null && Number(disp('remaining_amount')) > 0
+              ? `${Number(disp('remaining_amount')).toFixed(2)} €`
               : '-'}
           </div>
         )}
@@ -339,7 +351,7 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
             onClick={() => handleFieldClick('commission_closer')}
             title="Cliquez pour modifier"
           >
-            {Number(entry.commission_closer).toFixed(2)} €
+            {Number(disp('commission_closer')).toFixed(2)} €
           </div>
         )}
       </td>
@@ -367,7 +379,7 @@ export default function AccountingRow({ entry, onUpdate }: AccountingRowProps) {
             onClick={() => handleFieldClick('commission_formateur')}
             title="Cliquez pour modifier"
           >
-            {Number(entry.commission_formateur).toFixed(2)} €
+            {Number(disp('commission_formateur')).toFixed(2)} €
           </div>
         )}
       </td>

@@ -41,21 +41,40 @@ export async function PATCH(
     }
 
     if (lead_ids !== undefined && Array.isArray(lead_ids)) {
-      const toInsert = lead_ids.filter((lid: string) => lid).map((lead_id: string) => ({ planning_id: id, lead_id }))
+      const cleanLeadIds = lead_ids.filter((lid: string) => lid)
+      const toInsert = cleanLeadIds.map((lead_id: string) => ({ planning_id: id, lead_id }))
       let planningLeadOk = false
       const delRes = await adminClient.from('planning_lead').delete().eq('planning_id', id)
-      const tableMissing = delRes.error && (delRes.error.code === 'PGRST205' || delRes.error.message?.includes('planning_lead'))
+      const tableMissing = delRes.error && (delRes.error.code === 'PGRST205' || delRes.error.code === '42P01' || (delRes.error.message && /planning_lead|relation|does not exist/i.test(delRes.error.message)))
       if (!tableMissing && toInsert.length > 0) {
         const insRes = await adminClient.from('planning_lead').insert(toInsert)
         if (!insRes.error) planningLeadOk = true
-        else if (insRes.error.code !== 'PGRST205' && !insRes.error.message?.includes('planning_lead')) {
+        else if (insRes.error.code !== 'PGRST205' && insRes.error.code !== '42P01' && !insRes.error.message?.includes('planning_lead')) {
           console.error('Erreur mise à jour planning_lead:', insRes.error)
           return NextResponse.json({ error: insRes.error.message }, { status: 500 })
         }
       }
-      if (toInsert.length > 0 && (!planningLeadOk || tableMissing)) {
-        const firstId = toInsert[0].lead_id
-        const { error: leadIdErr } = await adminClient.from('planning').update({ lead_id: firstId }).eq('id', id)
+      // Si planning_lead indisponible et plusieurs participants : créer une ligne planning par participant (mêmes dates) pour que la fusion par date les affiche tous
+      if (cleanLeadIds.length > 1 && (!planningLeadOk || tableMissing)) {
+        const { data: currentRow } = await adminClient.from('planning').select('start_date, end_date, specific_dates').eq('id', id).single()
+        if (currentRow) {
+          const base: Record<string, unknown> = {
+            start_date: currentRow.start_date,
+            end_date: currentRow.end_date,
+          }
+          if (currentRow.specific_dates && Array.isArray(currentRow.specific_dates)) base.specific_dates = currentRow.specific_dates
+          for (let i = 1; i < cleanLeadIds.length; i++) {
+            const row = { ...base, lead_id: cleanLeadIds[i] }
+            const ins = await adminClient.from('planning').insert(row).select().single()
+            if (ins.error && (ins.error.message?.includes('lead_id') || ins.error.code === '42703')) {
+              const { lead_id: _l, ...rowWithoutLeadId } = row as Record<string, unknown>
+              await adminClient.from('planning').insert(rowWithoutLeadId).select().single()
+            }
+          }
+          await adminClient.from('planning').update({ lead_id: cleanLeadIds[0] }).eq('id', id)
+        }
+      } else if (cleanLeadIds.length > 0 && !planningLeadOk && cleanLeadIds.length === 1) {
+        const { error: leadIdErr } = await adminClient.from('planning').update({ lead_id: cleanLeadIds[0] }).eq('id', id)
         if (leadIdErr && leadIdErr.code !== '42703' && !leadIdErr.message?.includes('lead_id')) {
           console.error('Erreur mise à jour planning.lead_id:', leadIdErr)
         }

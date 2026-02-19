@@ -36,6 +36,7 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [mobileMoveLead, setMobileMoveLead] = useState<Lead | null>(null)
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null)
+  const [mobileDropPending, setMobileDropPending] = useState(false)
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const dragPositionRef = useRef({ x: 0, y: 0 })
@@ -182,9 +183,14 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
       setMobileMoveLead(null)
       return
     }
+    if (leadId && mobileDropPending) return
+    if (leadId) setMobileDropPending(true)
 
     const currentLead = leads.find(l => l.id === leadIdToMove)
-    if (!currentLead) return
+    if (!currentLead) {
+      if (leadId) setMobileDropPending(false)
+      return
+    }
 
     try {
       let updateData: any = {
@@ -222,9 +228,9 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
         .eq('id', leadIdToMove)
 
       if (!error) {
+        setMobileMoveLead(null)
         await fetch('/api/revalidate-dashboard').catch(() => {})
         router.refresh()
-        setMobileMoveLead(null)
       } else {
         alert('Erreur lors du déplacement: ' + error.message)
       }
@@ -233,6 +239,7 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
     } finally {
       setDraggedLead(null)
       setDragOverColumnId(null)
+      setMobileDropPending(false)
     }
   }
 
@@ -448,10 +455,10 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
         </div>
       </div>
 
-      {/* Vue mobile - Liste simplifiée */}
+      {/* Vue mobile - Liste simplifiée (même logique que desktop : un lead = une seule colonne) */}
       <div className="lg:hidden space-y-4">
         {closers.map((closer) => {
-          const closerLeads = leads.filter(l => l.closer_id === closer.id)
+          const closerLeads = getLeadsForColumn(closer.id)
           if (closerLeads.length === 0) return null
 
           return (
@@ -507,11 +514,11 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
           )
         })}
         {/* Colonne Nouveau */}
-        {leads.filter(l => !l.closer_id || !closers.find(c => c.id === l.closer_id)).length > 0 && (
+        {getLeadsForColumn('nouveau').length > 0 && (
           <div className="apple-card rounded-xl p-4">
             <h3 className="text-base font-semibold text-white mb-3">Nouveau</h3>
             <div className="space-y-2">
-              {leads.filter(l => !l.closer_id || !closers.find(c => c.id === l.closer_id)).map((lead) => (
+              {getLeadsForColumn('nouveau').map((lead) => (
                 <div
                   key={lead.id}
                   className={`p-3 rounded-lg border transition ${getCardColor(lead.status)}`}
@@ -552,11 +559,11 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
           </div>
         )}
         {/* Colonne Clos */}
-        {leads.filter(l => l.status === 'clos').length > 0 && (
+        {getLeadsForColumn('clos').length > 0 && (
           <div className="apple-card rounded-xl p-4">
-            <h3 className="text-base font-semibold text-white mb-3">✅ Closer</h3>
+            <h3 className="text-base font-semibold text-white mb-3">✅ Clos</h3>
             <div className="space-y-2">
-              {leads.filter(l => l.status === 'clos').map((lead) => (
+              {getLeadsForColumn('clos').map((lead) => (
                 <div
                   key={lead.id}
                   className={`p-3 rounded-lg border transition ${getCardColor(lead.status)}`}
@@ -597,11 +604,11 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
           </div>
         )}
         {/* Colonne KO */}
-        {leads.filter(l => l.status === 'ko').length > 0 && (
+        {getLeadsForColumn('ko').length > 0 && (
           <div className="apple-card rounded-xl p-4">
             <h3 className="text-base font-semibold text-white mb-3">❌ K.O</h3>
             <div className="space-y-2">
-              {leads.filter(l => l.status === 'ko').map((lead) => (
+              {getLeadsForColumn('ko').map((lead) => (
                 <div
                   key={lead.id}
                   className={`p-3 rounded-lg border transition ${getCardColor(lead.status)}`}
@@ -663,7 +670,8 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
             <div className="space-y-2">
               <button
                 onClick={() => handleDrop('nouveau', mobileMoveLead.id)}
-                className="w-full px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 rounded-xl text-white text-sm font-medium transition text-left"
+                disabled={mobileDropPending}
+                className="w-full px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 rounded-xl text-white text-sm font-medium transition text-left disabled:opacity-50 disabled:pointer-events-none"
               >
                 🆕 Nouveau
               </button>
@@ -671,27 +679,31 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
                 <button
                   key={closer.id}
                   onClick={() => handleDrop(closer.id, mobileMoveLead.id)}
-                  className="w-full px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-sm font-medium transition text-left"
+                  disabled={mobileDropPending}
+                  className="w-full px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-sm font-medium transition text-left disabled:opacity-50 disabled:pointer-events-none"
                 >
                   👤 {closer.full_name || closer.email}
                 </button>
               ))}
               <button
                 onClick={() => handleDrop('clos', mobileMoveLead.id)}
-                className="w-full px-4 py-3 bg-green-500/20 hover:bg-green-500/30 border border-green-400/30 rounded-xl text-white text-sm font-medium transition text-left"
+                disabled={mobileDropPending}
+                className="w-full px-4 py-3 bg-green-500/20 hover:bg-green-500/30 border border-green-400/30 rounded-xl text-white text-sm font-medium transition text-left disabled:opacity-50 disabled:pointer-events-none"
               >
-                ✅ Closer
+                ✅ Clos
               </button>
               <button
                 onClick={() => handleDrop('ko', mobileMoveLead.id)}
-                className="w-full px-4 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-400/30 rounded-xl text-white text-sm font-medium transition text-left"
+                disabled={mobileDropPending}
+                className="w-full px-4 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-400/30 rounded-xl text-white text-sm font-medium transition text-left disabled:opacity-50 disabled:pointer-events-none"
               >
                 ❌ K.O
               </button>
             </div>
             <button
-              onClick={() => setMobileMoveLead(null)}
-              className="w-full mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white text-sm transition"
+              onClick={() => !mobileDropPending && setMobileMoveLead(null)}
+              disabled={mobileDropPending}
+              className="w-full mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white text-sm transition disabled:opacity-50 disabled:pointer-events-none"
             >
               Annuler
             </button>
