@@ -6,6 +6,7 @@ import Link from 'next/link'
 import PieChart from '@/components/dashboard/PieChart'
 import MiniCalendar from '@/components/dashboard/MiniCalendar'
 import RecentLeads from '@/components/dashboard/RecentLeads'
+import RecentComments from '@/components/dashboard/RecentComments'
 import ActivityChart from '@/components/dashboard/ActivityChart'
 import ClosersRanking from '@/components/dashboard/ClosersRanking'
 import { getDemoLeads, isDemoMode } from '@/lib/demo-data'
@@ -65,6 +66,7 @@ export default async function DashboardPage() {
           <PieChart title="Répartition par statut" data={statusDistribution} />
           <RecentLeads leads={recentLeads} />
         </div>
+        <RecentComments comments={[]} />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <QuickAccessCard href="/dashboard/crm" title="CRM" description="Gérer les leads et suivre les ventes" icon="👥" />
           <QuickAccessCard href="/dashboard/comptabilite" title="Comptabilité" description="Voir les ventes et exporter les données" icon="💰" />
@@ -100,6 +102,7 @@ export default async function DashboardPage() {
     let allLeadsForChart: any[] = []
     let closersRanking: any[] = []
     let topProducts: { formation: string; label: string; count: number; ca: number }[] = []
+    let recentComments: any[] = []
 
     try {
       const now = new Date()
@@ -292,6 +295,28 @@ export default async function DashboardPage() {
         }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 6)
+
+      // Derniers commentaires sur les leads (date, auteur, lead, commentaire)
+      const { data: commentsData } = await adminClient
+        .from('lead_comments')
+        .select(`
+          id,
+          comment,
+          created_at,
+          lead_id,
+          leads:lead_id(first_name, last_name),
+          users:user_id(full_name, email)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(10)
+      recentComments = (commentsData || []).map((c: any) => ({
+        id: c.id,
+        comment: c.comment,
+        created_at: c.created_at,
+        lead_id: c.lead_id,
+        lead: c.leads || {},
+        user: c.users || {},
+      }))
     } catch (dbError: any) {
       console.log('⚠️ Erreur DB (mais on continue):', dbError.message)
       // On continue quand même avec des valeurs par défaut
@@ -352,6 +377,9 @@ export default async function DashboardPage() {
           />
           <RecentLeads leads={recentLeads} />
         </div>
+
+        {/* Derniers commentaires sur les leads */}
+        <RecentComments comments={recentComments} />
 
         {/* Top des produits vendus */}
         {topProducts.length > 0 && (

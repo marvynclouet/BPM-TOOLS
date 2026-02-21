@@ -14,12 +14,7 @@ export default async function GestionPage() {
     const demoUser = getDemoUser()
     const closersMap: Record<string, { full_name: string | null; email: string }> = {}
     getDemoClosers().forEach(c => { closersMap[c.id] = { full_name: c.full_name, email: c.email } })
-    const hotLeads = demoLeads.filter(l =>
-      l.closer_id === demoUser.id &&
-      ((l as { interest_level?: string }).interest_level === 'chaud' || l.status === 'en_cours_de_closing' || (l as { status: string }).status === 'acompte_en_cours')
-    )
     const closedLeads = demoLeads.filter(l => l.status === 'clos' || l.status === 'acompte_regle')
-    const hotLeadsWithPlanning = hotLeads.map(lead => ({ ...lead, planning: [] }))
     const acompteDemo = closedLeads.filter((l: { status: string }) => l.status === 'acompte_regle').map((lead: any) => ({
       ...lead,
       planning: [],
@@ -39,16 +34,6 @@ export default async function GestionPage() {
         <div className="space-y-1 sm:space-y-2">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight">Gestion</h1>
           <p className="text-white/50 text-sm sm:text-base lg:text-lg">Gestion des leads chauds et élèves closés</p>
-        </div>
-        <div className="space-y-3 sm:space-y-4">
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">🔥 Leads chauds</h2>
-            <span className="px-2 sm:px-3 py-1 bg-red-500/20 text-red-300 rounded-full text-xs sm:text-sm font-medium">
-              {hotLeadsWithPlanning.length}
-            </span>
-          </div>
-          <p className="text-white/50 text-xs sm:text-sm">Leads chauds, en cours de closing et acompte en cours - Ouvrez des conversations WhatsApp</p>
-          <GestionTable leads={hotLeadsWithPlanning as any} showWhatsAppGroup={true} showDocuments={false} />
         </div>
         <div className="space-y-3 sm:space-y-4">
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
@@ -83,23 +68,9 @@ export default async function GestionPage() {
     redirect('/login')
   }
 
-  // Récupérer l'utilisateur complet pour avoir son ID
-  const user = await getCurrentUser()
-  const currentUserId = user?.id || authUser.id
-
   const adminClient = createAdminClient()
-  
-    // 1. Récupérer les leads "chauds" attribués à l'utilisateur connecté
-    // Inclut: interest_level='chaud' OU status='en_cours_de_closing' OU status='acompte_en_cours'
-    // Note: Un lead chaud peut ne pas avoir de planning encore
-    const { data: hotLeads, error: hotLeadsError } = await adminClient
-      .from('leads')
-      .select('*')
-      .eq('closer_id', currentUserId)
-      .or('interest_level.eq.chaud,status.eq.en_cours_de_closing,status.eq.acompte_en_cours')
-      .order('created_at', { ascending: false })
 
-  // 2. Récupérer leads acompte réglé (acomptes en cours) et clos (payés en entier)
+  // Récupérer leads acompte réglé (acomptes en cours) et clos (payés en entier)
   const { data: closedLeads, error: closedLeadsError } = await adminClient
     .from('leads')
     .select('*')
@@ -148,10 +119,7 @@ export default async function GestionPage() {
     }
   }
 
-  const allLeadIds = [
-    ...(hotLeads?.map((l: { id: string }) => l.id) || []),
-    ...(closedLeads?.map((l: { id: string }) => l.id) || []),
-  ]
+  const allLeadIds = (closedLeads || []).map((l: { id: string }) => l.id)
   let planningByLead: Record<string, any[]> = {}
   if (allLeadIds.length > 0) {
     const { data: links } = await adminClient
@@ -169,11 +137,6 @@ export default async function GestionPage() {
     }, {})
   }
 
-  const hotLeadsWithPlanning = (hotLeads || []).map((lead: any) => ({
-    ...lead,
-    planning: planningByLead[lead.id] || [],
-  }))
-
   const acompteEnCoursWithPlanning = acompteRegleLeads.map((lead: any) => ({
     ...lead,
     planning: planningByLead[lead.id] || [],
@@ -189,8 +152,8 @@ export default async function GestionPage() {
     closer: lead.closer_id ? closersMap[lead.closer_id] : null,
   }))
 
-  if (hotLeadsError || closedLeadsError) {
-    console.error('Error fetching leads:', hotLeadsError || closedLeadsError)
+  if (closedLeadsError) {
+    console.error('Error fetching leads:', closedLeadsError)
   }
 
   return (
@@ -201,23 +164,7 @@ export default async function GestionPage() {
         <p className="text-white/50 text-sm sm:text-base lg:text-lg">Gestion des leads chauds et élèves closés</p>
       </div>
 
-      {/* Section 1 : Leads chauds (pour ouvrir conversations WhatsApp) */}
-      <div className="space-y-3 sm:space-y-4">
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">🔥 Leads chauds</h2>
-          <span className="px-2 sm:px-3 py-1 bg-red-500/20 text-red-300 rounded-full text-xs sm:text-sm font-medium">
-            {hotLeadsWithPlanning.length}
-          </span>
-        </div>
-        <p className="text-white/50 text-xs sm:text-sm">Leads chauds, en cours de closing et acompte en cours - Ouvrez des conversations WhatsApp</p>
-          <GestionTable
-          leads={hotLeadsWithPlanning as any}
-          showWhatsAppGroup={true}
-          showDocuments={false}
-        />
-      </div>
-
-      {/* Section 2 : Acomptes en cours (reste à payer, closer, suivi) */}
+      {/* Section Acomptes en cours (reste à payer, closer, suivi) */}
       <div className="space-y-3 sm:space-y-4">
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">💰 Acomptes en cours</h2>
