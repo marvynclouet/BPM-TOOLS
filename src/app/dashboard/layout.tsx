@@ -41,6 +41,7 @@ export default async function DashboardLayoutWrapper({
         <DashboardLayout
           isDemo
           user={{
+            id: demoUser.id,
             email: demoUser.email,
             role: demoUser.role,
             full_name: demoUser.full_name,
@@ -60,6 +61,7 @@ export default async function DashboardLayoutWrapper({
     return (
       <DashboardLayout
         user={{
+          id: user?.id ?? authUser.id,
           email: authUser.email || 'unknown@email.com',
           role: user?.role || 'admin',
           full_name: user?.full_name || null,

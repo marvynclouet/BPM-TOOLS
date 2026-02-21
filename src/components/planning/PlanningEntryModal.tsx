@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale/fr'
 
@@ -22,6 +22,13 @@ interface PlanningEntry {
   specific_dates: string[] | null
   leads: LeadInfo[]
   _allIds?: string[]
+  trainer_id?: string | null
+}
+
+interface TrainerOption {
+  id: string
+  full_name: string | null
+  email: string
 }
 
 interface LeadOption {
@@ -36,9 +43,10 @@ interface PlanningEntryModalProps {
   onClose: () => void
   onRefresh?: () => void
   leads?: LeadOption[]
+  isAdmin?: boolean
 }
 
-export default function PlanningEntryModal({ entries, date, onClose, onRefresh, leads = [] }: PlanningEntryModalProps) {
+export default function PlanningEntryModal({ entries, date, onClose, onRefresh, leads = [], isAdmin = false }: PlanningEntryModalProps) {
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
   const [editLeadIds, setEditLeadIds] = useState<string[]>([])
   const [editFormation, setEditFormation] = useState('')
@@ -48,6 +56,17 @@ export default function PlanningEntryModal({ entries, date, onClose, onRefresh, 
   const [editEnd, setEditEnd] = useState('')
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [trainers, setTrainers] = useState<TrainerOption[]>([])
+  const [trainerUpdatingId, setTrainerUpdatingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetch('/api/formateur/trainers')
+        .then((r) => r.json())
+        .then((list) => Array.isArray(list) && setTrainers(list))
+        .catch(() => {})
+    }
+  }, [isAdmin])
 
   const formationLabels: Record<string, string> = {
     inge_son: 'Ingé son',
@@ -175,6 +194,47 @@ export default function PlanningEntryModal({ entries, date, onClose, onRefresh, 
                           </p>
                         )}
                       </div>
+                    </div>
+                  )}
+
+                  {isAdmin && (
+                    <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-white/10">
+                      <span className="text-xs font-medium text-white/70">Formateur assigné :</span>
+                      <select
+                        value={entry.trainer_id ?? ''}
+                        onChange={async (e) => {
+                          const val = e.target.value || null
+                          const ids = entry._allIds?.length ? entry._allIds : [entry.id]
+                          setTrainerUpdatingId(entry.id)
+                          try {
+                            for (const id of ids) {
+                              const res = await fetch(`/api/formateur/sessions/${id}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ trainer_id: val }),
+                              })
+                              if (!res.ok) {
+                                const err = await res.json().catch(() => ({}))
+                                alert(err.error || 'Erreur')
+                                return
+                              }
+                            }
+                            onRefresh?.()
+                          } catch (err: any) {
+                            alert(err.message || 'Erreur')
+                          } finally {
+                            setTrainerUpdatingId(null)
+                          }
+                        }}
+                        disabled={trainerUpdatingId === entry.id}
+                        className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xs disabled:opacity-50"
+                      >
+                        <option value="">— Aucun —</option>
+                        {trainers.map((t) => (
+                          <option key={t.id} value={t.id}>{t.full_name || t.email}</option>
+                        ))}
+                      </select>
+                      {trainerUpdatingId === entry.id && <span className="text-white/50 text-xs">Enregistrement…</span>}
                     </div>
                   )}
 

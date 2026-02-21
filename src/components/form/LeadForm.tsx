@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { trackMetaEvent } from '@/components/tracking/MetaPixel'
+import { trackTikTokEvent } from '@/components/tracking/TikTokPixel'
 
 interface LeadFormProps {
   source: string
@@ -59,6 +60,10 @@ export default function LeadForm({ source }: LeadFormProps) {
         content_name: formData.formation,
         status: true,
       })
+
+      // TikTok Pixel - conversion formulaire (Lead + CompleteRegistration)
+      trackTikTokEvent('Lead', { content_name: formData.formation })
+      trackTikTokEvent('CompleteRegistration', { content_name: formData.formation })
 
       setFormData({
         first_name: '',

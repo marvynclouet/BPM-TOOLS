@@ -30,9 +30,10 @@ interface CalendarViewProps {
   entries: CalendarEntry[]
   leads?: LeadOption[]
   onRefresh?: () => void
+  isAdmin?: boolean
 }
 
-export default function CalendarView({ entries, leads = [], onRefresh }: CalendarViewProps) {
+export default function CalendarView({ entries, leads = [], onRefresh, isAdmin = false }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedEntries, setSelectedEntries] = useState<CalendarEntry[]>([])
@@ -270,6 +271,7 @@ export default function CalendarView({ entries, leads = [], onRefresh }: Calenda
           }}
           onRefresh={onRefresh}
           leads={leads}
+          isAdmin={isAdmin}
         />
       )}
     </div>

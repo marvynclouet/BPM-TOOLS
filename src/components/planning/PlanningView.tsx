@@ -38,6 +38,7 @@ interface PlanningViewProps {
   entries: PlanningEntry[]
   leads?: LeadOption[]
   onRefresh?: () => void
+  isAdmin?: boolean
 }
 
 const formatLabels: Record<string, string> = {
@@ -51,7 +52,7 @@ const dayLabels: Record<string, string> = {
   vendredi: 'Vendredi', samedi: 'Samedi', dimanche: 'Dimanche',
 }
 
-export default function PlanningView({ entries, leads = [], onRefresh }: PlanningViewProps) {
+export default function PlanningView({ entries, leads = [], onRefresh, isAdmin = false }: PlanningViewProps) {
   const [viewMode, setViewMode] = useState<'calendar' | 'list' | 'sessions'>('calendar')
   const [showAddModal, setShowAddModal] = useState(false)
   const [entryForModal, setEntryForModal] = useState<PlanningEntry | null>(null)
@@ -125,7 +126,7 @@ export default function PlanningView({ entries, leads = [], onRefresh }: Plannin
       </div>
 
       {viewMode === 'calendar' ? (
-        <CalendarView entries={entries} leads={leads} onRefresh={onRefresh} />
+        <CalendarView entries={entries} leads={leads} onRefresh={onRefresh} isAdmin={isAdmin} />
       ) : viewMode === 'sessions' ? (
         <div className="grid gap-3 sm:gap-4 grid-cols-1 min-w-0 sm:grid-cols-2 lg:grid-cols-3">
           {entries.length === 0 ? (
@@ -328,6 +329,7 @@ export default function PlanningView({ entries, leads = [], onRefresh }: Plannin
           onClose={() => setEntryForModal(null)}
           onRefresh={() => { onRefresh?.(); setEntryForModal(null) }}
           leads={leads}
+          isAdmin={isAdmin}
         />
       )}
     </div>

@@ -30,15 +30,17 @@ interface PlanningEntry {
 interface PlanningClientProps {
   entries: PlanningEntry[]
   leads: LeadOption[]
+  isAdmin?: boolean
 }
 
-export default function PlanningClient({ entries, leads }: PlanningClientProps) {
+export default function PlanningClient({ entries, leads, isAdmin = false }: PlanningClientProps) {
   const router = useRouter()
   return (
     <PlanningView
       entries={entries}
       leads={leads}
       onRefresh={() => router.refresh()}
+      isAdmin={isAdmin}
     />
   )
 }

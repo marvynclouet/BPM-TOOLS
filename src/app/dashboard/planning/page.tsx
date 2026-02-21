@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getCurrentUser } from '@/lib/auth'
 import PlanningView from '@/components/planning/PlanningView'
 import PlanningClient from '@/components/planning/PlanningClient'
 import { isDemoMode } from '@/lib/demo-data'
@@ -18,6 +19,7 @@ export default async function PlanningPage() {
         <div className="space-y-1 sm:space-y-2">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight">Planning</h1>
           <p className="text-white/50 text-sm sm:text-base lg:text-lg">Gestion du planning des formations</p>
+          <p className="text-white/40 text-xs">Mode démo : aucune session en base. Connectez-vous avec un compte réel pour voir vos sessions.</p>
         </div>
         <PlanningView entries={[]} />
       </div>
@@ -33,6 +35,9 @@ export default async function PlanningPage() {
     redirect('/login')
   }
 
+  const user = await getCurrentUser()
+  const isAdmin = user?.role === 'admin'
+
   const adminClient = createAdminClient()
 
   // Leads Clos / Acompte : uniquement pour la liste des participants dans "Ajouter une session"
@@ -46,15 +51,25 @@ export default async function PlanningPage() {
 
   let planningRaw: any[] = []
   let planningLeadRows: { planning_id: string; lead_id: string }[] = []
+  let planningError: string | null = null
 
-  const planningRes = await adminClient
+  let planningRes = await adminClient
     .from('planning')
-    .select('*')
+    .select('id, lead_id, start_date, end_date, specific_dates, gcal_event_id, created_at, updated_at, trainer_id, payment_status, payment_amount')
     .order('start_date', { ascending: true })
     .order('id', { ascending: true })
 
+  if (planningRes.error && planningRes.error.message?.includes('does not exist')) {
+    planningRes = await adminClient
+      .from('planning')
+      .select('id, lead_id, start_date, end_date, specific_dates, gcal_event_id, created_at, updated_at')
+      .order('start_date', { ascending: true })
+      .order('id', { ascending: true })
+  }
+
   if (planningRes.error) {
     console.error('Error fetching planning:', planningRes.error)
+    planningError = planningRes.error.message
   } else {
     planningRaw = planningRes.data || []
   }
@@ -171,7 +186,15 @@ export default async function PlanningPage() {
         <p className="text-white/50 text-sm sm:text-base lg:text-lg">Gestion du planning des formations</p>
       </div>
 
-      <PlanningClient entries={planning} leads={leads || []} />
+      {planningError ? (
+        <div className="apple-card rounded-2xl p-6 text-center">
+          <p className="text-amber-300 font-medium">Impossible de charger le planning.</p>
+          <p className="text-white/60 text-sm mt-1">{planningError}</p>
+          <p className="text-white/50 text-xs mt-2">Vérifiez la connexion à la base et réactualisez la page.</p>
+        </div>
+      ) : (
+        <PlanningClient entries={planning} leads={leads || []} isAdmin={isAdmin} />
+      )}
     </div>
   )
 }

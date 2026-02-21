@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const email = (body.email || '').trim().toLowerCase()
     const password = (body.password || '').trim()
     const full_name = (body.full_name || '').trim() || null
-    const role = body.role === 'admin' || body.role === 'closer' ? body.role : 'closer'
+    const role = body.role === 'admin' || body.role === 'closer' || body.role === 'formateur' ? body.role : 'closer'
 
     if (!email) {
       return NextResponse.json({ error: 'Email requis' }, { status: 400 })

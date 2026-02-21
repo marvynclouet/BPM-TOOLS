@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import MetaPixel from '@/components/tracking/MetaPixel'
+import TikTokPixel from '@/components/tracking/TikTokPixel'
 
 export const metadata: Metadata = {
   title: 'BPM Tools',
@@ -16,6 +17,7 @@ export default function RootLayout({
     <html lang="fr">
       <body>
         <MetaPixel />
+        <TikTokPixel />
         {children}
       </body>
     </html>
