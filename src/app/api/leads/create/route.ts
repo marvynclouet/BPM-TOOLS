@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendNewLeadNotification } from '@/lib/communications'
+import { sendTikTokLeadEvents } from '@/lib/tiktok-events'
 
 const DASHBOARD_PATHS = ['/dashboard', '/dashboard/crm', '/dashboard/comptabilite', '/dashboard/planning', '/dashboard/gestion', '/dashboard/mon-espace']
 
@@ -68,6 +69,18 @@ export async function POST(request: NextRequest) {
     } else {
       console.warn('⚠️ LEAD_NOTIFICATION_EMAIL non défini - aucune notification envoyée')
     }
+
+    // TikTok Events API server-side (avec test_event_code pour vérifier dans l'onglet Test Events)
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || null
+    const userAgent = request.headers.get('user-agent') || null
+    sendTikTokLeadEvents({
+      leadId: data.id,
+      email: data.email,
+      phone: data.phone,
+      formation: data.formation,
+      ip,
+      userAgent,
+    }).catch((err) => console.error('TikTok Events API:', err))
 
     for (const p of DASHBOARD_PATHS) revalidatePath(p)
     return NextResponse.json(

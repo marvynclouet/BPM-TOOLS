@@ -61,7 +61,7 @@ export default function LeadForm({ source }: LeadFormProps) {
         status: true,
       })
 
-      // TikTok Pixel - conversion formulaire (Lead + CompleteRegistration)
+      // TikTok Pixel - conversion (Lead + CompleteRegistration)
       trackTikTokEvent('Lead', { content_name: formData.formation })
       trackTikTokEvent('CompleteRegistration', { content_name: formData.formation })
 

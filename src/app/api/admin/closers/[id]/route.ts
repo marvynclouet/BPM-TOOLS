@@ -39,7 +39,7 @@ export async function PATCH(request: NextRequest, context: Context) {
     const email = body.email != null ? (body.email + '').trim().toLowerCase() : undefined
     const full_name = body.full_name !== undefined ? (body.full_name + '').trim() || null : undefined
     const password = body.password != null ? (body.password + '').trim() : undefined
-    const role = body.role === 'admin' || body.role === 'closer' || body.role === 'formateur' ? body.role : undefined
+    const role = body.role === 'admin' || body.role === 'closer' ? body.role : undefined
 
     if (password !== undefined && password.length > 0 && password.length < 6) {
       return NextResponse.json(

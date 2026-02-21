@@ -27,11 +27,6 @@ export default function DashboardLayout({ children, user, isDemo }: DashboardLay
   const [isNavbarVisible, setIsNavbarVisible] = useState(true)
   const [lastScrollY, setLastScrollY] = useState(0)
 
-  useEffect(() => {
-    if (user.role === 'formateur' && pathname.startsWith('/dashboard') && pathname !== '/dashboard/formateur' && !pathname.startsWith('/dashboard/formateur/')) {
-      router.replace('/dashboard/formateur')
-    }
-  }, [user.role, pathname, router])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -72,17 +67,12 @@ export default function DashboardLayout({ children, user, isDemo }: DashboardLay
     { href: '/dashboard/planning', label: 'Planning' },
     { href: '/dashboard/gestion', label: 'Gestion' },
     { href: '/dashboard/mon-espace', label: 'Mon Espace' },
-    { href: '/dashboard/formateur', label: 'Formateur', formateurOrAdmin: true },
   ]
 
-  // Formateur : uniquement l'onglet Formateur ; admin : tout + Formateur ; closer : pas Formateur
-  const navItems = user.role === 'formateur'
-    ? allNavItems.filter(item => item.href === '/dashboard/formateur')
-    : allNavItems.filter(item => {
-        if (item.adminOnly && user.role !== 'admin') return false
-        if ((item as { formateurOrAdmin?: boolean }).formateurOrAdmin) return user.role === 'admin'
-        return true
-      })
+  const navItems = allNavItems.filter(item => {
+    if (item.adminOnly && user.role !== 'admin') return false
+    return true
+  })
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white">

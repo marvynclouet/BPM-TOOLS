@@ -25,7 +25,13 @@ export default function TikTokPixel() {
 }
 
 export function trackTikTokEvent(eventName: string, eventData?: Record<string, unknown>) {
-  if (typeof window !== 'undefined' && (window as any).ttq) {
-    ;(window as any).ttq.track(eventName, eventData)
+  if (typeof window === 'undefined') return
+  const ttq = (window as any).ttq
+  if (!ttq) return
+  const send = () => ttq.track(eventName, eventData || {})
+  if (typeof ttq.ready === 'function') {
+    ttq.ready(send)
+  } else {
+    send()
   }
 }

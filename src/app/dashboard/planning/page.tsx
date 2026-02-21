@@ -55,7 +55,7 @@ export default async function PlanningPage() {
 
   let planningRes = await adminClient
     .from('planning')
-    .select('id, lead_id, start_date, end_date, specific_dates, gcal_event_id, created_at, updated_at, trainer_id, payment_status, payment_amount')
+    .select('id, lead_id, start_date, end_date, specific_dates, gcal_event_id, created_at, updated_at')
     .order('start_date', { ascending: true })
     .order('id', { ascending: true })
 

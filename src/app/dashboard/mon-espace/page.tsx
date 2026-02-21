@@ -238,7 +238,7 @@ export default async function MonEspacePage({ searchParams = {} }: PageProps) {
     const { data: closersData } = await adminClient
       .from('users')
       .select('id, email, full_name, created_at, role')
-      .in('role', ['closer', 'admin', 'formateur'])
+      .in('role', ['closer', 'admin'])
       .order('full_name', { ascending: true, nullsFirst: false })
     closersList = (closersData || []).map((u: any) => ({
       id: u.id,

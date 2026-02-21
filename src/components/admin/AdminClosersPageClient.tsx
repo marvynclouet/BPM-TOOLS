@@ -23,7 +23,7 @@ export default function AdminClosersPageClient({
   const [email, setEmail] = useState('')
   const [fullName, setFullName] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<'closer' | 'admin' | 'formateur'>('closer')
+  const [role, setRole] = useState<'closer' | 'admin'>('closer')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -32,7 +32,7 @@ export default function AdminClosersPageClient({
   const [editEmail, setEditEmail] = useState('')
   const [editFullName, setEditFullName] = useState('')
   const [editPassword, setEditPassword] = useState('')
-  const [editRole, setEditRole] = useState<'closer' | 'admin' | 'formateur'>('closer')
+  const [editRole, setEditRole] = useState<'closer' | 'admin'>('closer')
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
   const [roleChangingId, setRoleChangingId] = useState<string | null>(null)
@@ -82,11 +82,11 @@ export default function AdminClosersPageClient({
     setEditEmail(c.email)
     setEditFullName(c.full_name || '')
     setEditPassword('')
-    setEditRole((c.role === 'admin' ? 'admin' : 'closer'))
+    setEditRole(c.role === 'admin' ? 'admin' : 'closer')
     setEditError(null)
   }
 
-  const handleRoleChange = async (userId: string, newRole: 'closer' | 'admin' | 'formateur') => {
+  const handleRoleChange = async (userId: string, newRole: 'closer' | 'admin') => {
     const c = closers.find(x => x.id === userId)
     if (!c || c.role === newRole) return
     setRoleChangingId(userId)
@@ -153,7 +153,7 @@ export default function AdminClosersPageClient({
   return (
     <div className="space-y-8">
       <div className="apple-card rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">Nouveau compte (closer / admin / formateur)</h2>
+        <h2 className="text-lg font-semibold text-white mb-4">Nouveau compte (closer / admin)</h2>
         <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
           {error && (
             <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
@@ -232,8 +232,8 @@ export default function AdminClosersPageClient({
       </div>
 
       <div className="apple-card rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Closers, admins & formateurs</h2>
-        <p className="text-white/50 text-xs mb-4">Gérez les rôles (Closer / Admin / Formateur) et modifiez les comptes.</p>
+            <h2 className="text-lg font-semibold text-white mb-4">Closers & admins</h2>
+        <p className="text-white/50 text-xs mb-4">Gérez les rôles (Closer / Admin) et modifiez les comptes.</p>
         {closers.length === 0 ? (
           <p className="text-white/50 text-sm">Aucun compte pour le moment.</p>
         ) : (
@@ -248,14 +248,13 @@ export default function AdminClosersPageClient({
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <select
-                    value={c.role === 'admin' ? 'admin' : c.role === 'formateur' ? 'formateur' : 'closer'}
-                    onChange={e => handleRoleChange(c.id, e.target.value as 'closer' | 'admin' | 'formateur')}
+                    value={c.role === 'admin' ? 'admin' : 'closer'}
+                    onChange={e => handleRoleChange(c.id, e.target.value as 'closer' | 'admin')}
                     disabled={roleChangingId === c.id}
                     className="px-2 py-1.5 text-xs font-medium rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/30 disabled:opacity-50"
                   >
                     <option value="closer" className="bg-zinc-900">Closer</option>
                     <option value="admin" className="bg-zinc-900">Admin</option>
-                    <option value="formateur" className="bg-zinc-900">Formateur</option>
                   </select>
                   <span className="text-white/40 text-xs">
                     {format(new Date(c.created_at), 'd MMM yyyy', { locale: fr })}
@@ -330,12 +329,11 @@ export default function AdminClosersPageClient({
                 <label className="block text-sm font-medium text-white/70 mb-1.5">Rôle</label>
                 <select
                   value={editRole}
-                  onChange={e => setEditRole(e.target.value as 'closer' | 'admin' | 'formateur')}
+                  onChange={e => setEditRole(e.target.value as 'closer' | 'admin')}
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/20"
                 >
                   <option value="closer" className="bg-zinc-900">Closer</option>
                   <option value="admin" className="bg-zinc-900">Admin</option>
-                  <option value="formateur" className="bg-zinc-900">Formateur</option>
                 </select>
               </div>
               <div className="flex justify-end gap-2 pt-2">
