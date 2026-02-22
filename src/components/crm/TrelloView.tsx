@@ -27,9 +27,11 @@ interface TrelloViewProps {
     email?: string
   } | null
   isDemo?: boolean
+  favoriteLeadIds?: Set<string>
+  onToggleFavorite?: (leadId: string, isFavorite: boolean) => void
 }
 
-export default function TrelloView({ leads, closers, currentUser, isDemo }: TrelloViewProps) {
+export default function TrelloView({ leads, closers, currentUser, isDemo, favoriteLeadIds = new Set(), onToggleFavorite }: TrelloViewProps) {
   const router = useRouter()
   const supabase = createClient()
   const [draggedLead, setDraggedLead] = useState<string | null>(null)
@@ -135,17 +137,25 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
     }
   }
 
-  // Obtenir les leads pour une colonne (closer ou nouveau/ko/clos)
+  // Obtenir les leads pour une colonne (closer ou nouveau/ko/clos), favoris en tête
   const getLeadsForColumn = (closerId: string | 'nouveau' | 'ko' | 'clos') => {
+    let list: typeof leads
     if (closerId === 'nouveau') {
-      return leads.filter(lead => !lead.closer_id && lead.status !== 'ko' && lead.status !== 'clos')
+      list = leads.filter(lead => !lead.closer_id && lead.status !== 'ko' && lead.status !== 'clos')
     } else if (closerId === 'ko') {
-      return leads.filter(lead => lead.status === 'ko')
+      list = leads.filter(lead => lead.status === 'ko')
     } else if (closerId === 'clos') {
-      return leads.filter(lead => lead.status === 'clos')
+      list = leads.filter(lead => lead.status === 'clos')
     } else {
-      return leads.filter(lead => lead.closer_id === closerId && lead.status !== 'ko' && lead.status !== 'clos')
+      list = leads.filter(lead => lead.closer_id === closerId && lead.status !== 'ko' && lead.status !== 'clos')
     }
+    return [...list].sort((a, b) => {
+      const aFav = favoriteLeadIds.has(a.id)
+      const bFav = favoriteLeadIds.has(b.id)
+      if (aFav && !bFav) return -1
+      if (!aFav && bFav) return 1
+      return 0
+    })
   }
 
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
@@ -203,10 +213,23 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
         if (currentLead.status === 'ko') {
           updateData.status = 'nouveau'
         }
-      } else if (targetCloserId === 'ko') {
-        // Mettre dans KO
+      } else       if (targetCloserId === 'ko') {
+        const { count } = await supabase
+          .from('lead_comments')
+          .select('*', { count: 'exact', head: true })
+          .eq('lead_id', leadIdToMove)
+        if ((count || 0) === 0) {
+          const ok = window.confirm(
+            '⚠️ Ce lead n\'a aucun commentaire. Il est recommandé d\'ajouter un commentaire pour documenter le motif du KO.\n\nMarquer KO quand même ?'
+          )
+          if (!ok) {
+            if (leadId) setMobileDropPending(false)
+            setDraggedLead(null)
+            setDragOverColumnId(null)
+            return
+          }
+        }
         updateData.status = 'ko'
-        // Garder le closer actuel ou assigner au current user
         updateData.closer_id = currentLead.closer_id || currentUser.id
       } else if (targetCloserId === 'clos') {
         // Mettre dans Clos
@@ -282,6 +305,9 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
                 onDragStart={(e) => handleDragStart(e, lead.id)}
                 onDragEnd={handleDragEnd}
                 onClick={() => setSelectedLead(lead)}
+                isFavorite={favoriteLeadIds.has(lead.id)}
+                onToggleFavorite={onToggleFavorite}
+                isDemo={isDemo}
               />
             ))}
             {getLeadsForColumn('nouveau').length === 0 && (
@@ -328,6 +354,9 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
                       onDragStart={(e) => handleDragStart(e, lead.id)}
                       onDragEnd={handleDragEnd}
                       onClick={() => setSelectedLead(lead)}
+                      isFavorite={favoriteLeadIds.has(lead.id)}
+                      onToggleFavorite={onToggleFavorite}
+                      isDemo={isDemo}
                     />
                   ))}
                   {columnLeads.length === 0 && (
@@ -367,9 +396,12 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
                     getCardColor={getCardColor}
                     getStatusEmoji={getStatusEmoji}
                     draggedLead={draggedLead}
-                    onDragStart={handleDragStart}
+                    onDragStart={(e) => handleDragStart(e, lead.id)}
                     onDragEnd={handleDragEnd}
                     onClick={() => setSelectedLead(lead)}
+                    isFavorite={favoriteLeadIds.has(lead.id)}
+                    onToggleFavorite={onToggleFavorite}
+                    isDemo={isDemo}
                   />
                 ))}
                 {getLeadsForColumn(currentUser.id).length === 0 && (
@@ -409,6 +441,9 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
                 onDragStart={(e) => handleDragStart(e, lead.id)}
                 onDragEnd={handleDragEnd}
                 onClick={() => setSelectedLead(lead)}
+                isFavorite={favoriteLeadIds.has(lead.id)}
+                onToggleFavorite={onToggleFavorite}
+                isDemo={isDemo}
               />
             ))}
             {getLeadsForColumn('clos').length === 0 && (
@@ -446,6 +481,9 @@ export default function TrelloView({ leads, closers, currentUser, isDemo }: Trel
                 onDragStart={(e) => handleDragStart(e, lead.id)}
                 onDragEnd={handleDragEnd}
                 onClick={() => setSelectedLead(lead)}
+                isFavorite={favoriteLeadIds.has(lead.id)}
+                onToggleFavorite={onToggleFavorite}
+                isDemo={isDemo}
               />
             ))}
             {getLeadsForColumn('ko').length === 0 && (
@@ -725,6 +763,9 @@ function LeadCard({
   onDragStart,
   onDragEnd,
   onClick,
+  isFavorite = false,
+  onToggleFavorite,
+  isDemo = false,
 }: {
   lead: Lead & { users?: { full_name: string | null; email: string } | null }
   formationLabels: Record<string, string>
@@ -735,6 +776,9 @@ function LeadCard({
   onDragStart: (e: React.DragEvent, leadId: string) => void
   onDragEnd: () => void
   onClick: () => void
+  isFavorite?: boolean
+  onToggleFavorite?: (leadId: string, isFavorite: boolean) => void
+  isDemo?: boolean
 }) {
   return (
     <div
@@ -746,21 +790,39 @@ function LeadCard({
         draggedLead === lead.id ? 'opacity-50 scale-95' : ''
       }`}
     >
-      {/* Statut avec emoji */}
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-lg">{getStatusEmoji(lead.status)}</span>
-        <span className="text-xs text-white/60 font-medium">
-          {lead.status === 'nouveau' ? '👶 Nouveau' :
-           lead.status === 'chinois' ? '🇨🇳 Chinois' :
-           lead.status === 'rats' ? '🐀 Rats' :
-           lead.status === 'nrp' ? '📞 NRP' :
-           lead.status === 'en_cours_de_closing' ? '👍 En cours de closing' :
-           lead.status === 'acompte_en_cours' ? '💰 Acompte en cours' :
-           lead.status === 'appele' ? '📞 Appelé' : 
-           lead.status === 'acompte_regle' ? '💰 Acompte réglé' :
-           lead.status === 'clos' ? '✅ Closé' : 
-           lead.status === 'ko' ? '❌ KO' : '👶 Nouveau'}
-        </span>
+      {/* Favori + Statut */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{getStatusEmoji(lead.status)}</span>
+          <span className="text-xs text-white/60 font-medium">
+            {lead.status === 'nouveau' ? '👶 Nouveau' :
+             lead.status === 'chinois' ? '🇨🇳 Chinois' :
+             lead.status === 'rats' ? '🐀 Rats' :
+             lead.status === 'nrp' ? '📞 NRP' :
+             lead.status === 'en_cours_de_closing' ? '👍 En cours de closing' :
+             lead.status === 'acompte_en_cours' ? '💰 Acompte en cours' :
+             lead.status === 'appele' ? '📞 Appelé' : 
+             lead.status === 'acompte_regle' ? '💰 Acompte réglé' :
+             lead.status === 'clos' ? '✅ Closé' : 
+             lead.status === 'ko' ? '❌ KO' : '👶 Nouveau'}
+          </span>
+        </div>
+        {!isDemo && onToggleFavorite && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              fetch(`/api/leads/${lead.id}/favorite`, { method: 'POST' })
+                .then((r) => r.json())
+                .then((d) => onToggleFavorite(lead.id, d.isFavorite))
+                .catch(() => {})
+            }}
+            className={`text-base transition shrink-0 ${isFavorite ? 'text-amber-400' : 'text-white/30 hover:text-amber-400/70'}`}
+            title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+          >
+            {isFavorite ? '⭐' : '☆'}
+          </button>
+        )}
       </div>
 
       {/* Nom du client */}

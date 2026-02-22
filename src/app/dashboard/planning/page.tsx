@@ -53,20 +53,22 @@ export default async function PlanningPage() {
   let planningLeadRows: { planning_id: string; lead_id: string }[] = []
   let planningError: string | null = null
 
+  // Sélection : id, dates, et lead_id si la colonne existe (fallback pour BDD sans planning_lead)
   let planningRes = await adminClient
     .from('planning')
-    .select('id, lead_id, start_date, end_date, specific_dates, gcal_event_id, created_at, updated_at')
+    .select('id, start_date, end_date, specific_dates, gcal_event_id, created_at, updated_at, lead_id')
     .order('start_date', { ascending: true })
     .order('id', { ascending: true })
 
-  if (planningRes.error && planningRes.error.message?.includes('does not exist')) {
-    planningRes = await adminClient
-      .from('planning')
-      .select('id, lead_id, start_date, end_date, specific_dates, gcal_event_id, created_at, updated_at')
-      .order('start_date', { ascending: true })
-      .order('id', { ascending: true })
+  if (planningRes.error) {
+    if (planningRes.error.message?.includes('lead_id') || (planningRes.error as any)?.code === '42703') {
+      planningRes = await adminClient
+        .from('planning')
+        .select('id, start_date, end_date, specific_dates, gcal_event_id, created_at, updated_at')
+        .order('start_date', { ascending: true })
+        .order('id', { ascending: true })
+    }
   }
-
   if (planningRes.error) {
     console.error('Error fetching planning:', planningRes.error)
     planningError = planningRes.error.message

@@ -1,5 +1,47 @@
 // Utilitaires pour l'envoi d'emails et WhatsApp
 
+/** Envoie un email HTML simple (rapports IA, rappels, etc.) */
+export async function sendSimpleEmail(options: {
+  to: string | string[]
+  subject: string
+  html: string
+}): Promise<{ success: boolean; error?: string }> {
+  const resendApiKey = process.env.RESEND_API_KEY
+  if (!resendApiKey) {
+    console.warn('⚠️ RESEND_API_KEY non configuré - email non envoyé')
+    return { success: false, error: 'RESEND_API_KEY non configuré' }
+  }
+
+  const toList = Array.isArray(options.to) ? options.to : [options.to]
+  const toTrimmed = toList.map((e) => e.trim()).filter(Boolean)
+  if (toTrimmed.length === 0) {
+    return { success: false, error: 'Aucun destinataire' }
+  }
+
+  try {
+    const { Resend } = require('resend')
+    const resend = new Resend(resendApiKey)
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'BPM Formation <noreply@bpmformation.fr>'
+
+    const { error } = await resend.emails.send({
+      from: fromEmail,
+      to: toTrimmed,
+      subject: options.subject,
+      html: options.html,
+    })
+
+    if (error) {
+      console.error('Erreur Resend sendSimpleEmail:', error)
+      return { success: false, error: error.message }
+    }
+    console.log('✅ Email envoyé:', options.subject, '→', toTrimmed.join(', '))
+    return { success: true }
+  } catch (err: any) {
+    console.error('sendSimpleEmail:', err)
+    return { success: false, error: err?.message }
+  }
+}
+
 export async function sendEmailWithDocuments(
   email: string,
   firstName: string,

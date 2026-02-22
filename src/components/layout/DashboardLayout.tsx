@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import DemoBanner from '@/components/shared/DemoBanner'
+import AIChatbox from '@/components/dashboard/AIChatbox'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -191,6 +192,7 @@ export default function DashboardLayout({ children, user, isDemo }: DashboardLay
         </div>
       </nav>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-4 sm:py-6">{children}</main>
+      <AIChatbox user={user} />
     </div>
   )
 }

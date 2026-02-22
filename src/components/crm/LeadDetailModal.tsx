@@ -7,6 +7,16 @@ import { fr } from 'date-fns/locale/fr'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import DatePicker from './DatePicker'
+import LeadAIRecommendation from './LeadAIRecommendation'
+
+interface ActivityEntry {
+  id: string
+  action_type: string
+  field_name: string | null
+  old_value: string | null
+  new_value: string | null
+  created_at: string
+}
 
 interface Comment {
   id: string
@@ -41,6 +51,8 @@ export default function LeadDetailModal({ lead, currentUser, onClose, isDemo }: 
   const [newComment, setNewComment] = useState('')
   const [comments, setComments] = useState<Comment[]>([])
   const [loadingComments, setLoadingComments] = useState(true)
+  const [activities, setActivities] = useState<ActivityEntry[]>([])
+  const [loadingActivities, setLoadingActivities] = useState(true)
   const isAdmin = currentUser?.role === 'admin'
   
   const [editValues, setEditValues] = useState({
@@ -61,6 +73,7 @@ export default function LeadDetailModal({ lead, currentUser, onClose, isDemo }: 
 
   useEffect(() => {
     loadComments()
+    loadActivities()
   }, [lead.id])
 
   const loadComments = async () => {
@@ -82,6 +95,37 @@ export default function LeadDetailModal({ lead, currentUser, onClose, isDemo }: 
     setLoadingComments(false)
   }
 
+  const loadActivities = async () => {
+    if (isDemo) {
+      setActivities([])
+      setLoadingActivities(false)
+      return
+    }
+    try {
+      const res = await fetch(`/api/leads/${lead.id}/activity-log`)
+      const data = await res.json()
+      setActivities(Array.isArray(data.activities) ? data.activities : [])
+    } catch {
+      setActivities([])
+    }
+    setLoadingActivities(false)
+  }
+
+  const logActivity = async (actionType: string, fieldName?: string, oldVal?: string | number, newVal?: string | number) => {
+    try {
+      await fetch(`/api/leads/${lead.id}/activity-log`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          actionType,
+          fieldName,
+          oldValue: oldVal,
+          newValue: newVal,
+        }),
+      })
+    } catch {}
+  }
+
   const handleFieldChange = (field: string, value: any) => {
     setEditValues(prev => ({
       ...prev,
@@ -101,6 +145,16 @@ export default function LeadDetailModal({ lead, currentUser, onClose, isDemo }: 
       const statusChanged = editValues.status !== lead.status
       const newStatus = editValues.status
       
+      if (statusChanged && newStatus === 'ko' && comments.length === 0) {
+        const ok = window.confirm(
+          '⚠️ Aucun commentaire sur ce lead. Il est recommandé d\'ajouter un commentaire pour documenter le motif du KO.\n\nEnregistrer quand même ?'
+        )
+        if (!ok) {
+          setSaving(false)
+          return
+        }
+      }
+
       if (statusChanged && (newStatus === 'acompte_regle' || newStatus === 'clos')) {
         // Vérifications préalables
         if (!editValues.price_fixed) {
@@ -192,6 +246,9 @@ export default function LeadDetailModal({ lead, currentUser, onClose, isDemo }: 
         .eq('id', lead.id)
 
       if (!error) {
+        if (statusChanged) {
+          await logActivity('status_changed', 'status', lead.status, editValues.status)
+        }
         await fetch('/api/revalidate-dashboard').catch(() => {})
         router.refresh()
         onClose()
@@ -247,8 +304,10 @@ export default function LeadDetailModal({ lead, currentUser, onClose, isDemo }: 
       })
 
     if (!error) {
+      await logActivity('comment_added')
       setNewComment('')
       await loadComments()
+      loadActivities()
       router.refresh()
     } else {
       alert('Erreur lors de l\'ajout du commentaire: ' + error.message)
@@ -552,8 +611,72 @@ export default function LeadDetailModal({ lead, currentUser, onClose, isDemo }: 
             )}
           </div>
 
+          {/* Recommandation IA */}
+          {!isDemo && (
+            <div className="border-t border-white/10 pt-6">
+              <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                💡 Recommandation IA
+              </h3>
+              <LeadAIRecommendation
+                leadId={lead.id}
+                onApplyAction={(action) => {
+                  if (action.type === 'relancer') {
+                    setNewComment(`Relance effectuée le ${new Date().toLocaleDateString('fr-FR')} – `)
+                    document.getElementById('lead-comment-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  } else if (action.type === 'chaud') {
+                    handleFieldChange('interest_level', 'chaud')
+                  } else {
+                    handleFieldChange('status', action.type)
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* Section Historique des actions */}
+          {!isDemo && (
+            <div className="border-t border-white/10 pt-6">
+              <h3 className="text-lg font-semibold text-white mb-3">📋 Historique des actions</h3>
+              {loadingActivities ? (
+                <div className="text-center text-white/50 py-4 text-sm">Chargement...</div>
+              ) : activities.length === 0 ? (
+                <div className="text-center text-white/40 py-4 text-sm">Aucune action enregistrée</div>
+              ) : (
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {activities.map((a) => (
+                    <div
+                      key={a.id}
+                      className="flex items-start gap-2 text-sm py-2 px-3 rounded-lg bg-white/5 border border-white/5"
+                    >
+                      <span className="text-white/50 shrink-0">
+                        {format(new Date(a.created_at), 'dd/MM HH:mm', { locale: fr })}
+                      </span>
+                      <span className="text-white/90">
+                        {a.action_type === 'status_changed' && (
+                          <>Statut : {a.old_value || '?'} → {a.new_value || '?'}</>
+                        )}
+                        {a.action_type === 'closer_assigned' && (
+                          <>Closer assigné</>
+                        )}
+                        {a.action_type === 'field_updated' && a.field_name && (
+                          <>{a.field_name} modifié</>
+                        )}
+                        {a.action_type === 'comment_added' && (
+                          <>Commentaire ajouté</>
+                        )}
+                        {!['status_changed', 'closer_assigned', 'field_updated', 'comment_added'].includes(a.action_type) && (
+                          <>{a.action_type}</>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Section Commentaires */}
-          <div className="border-t border-white/10 pt-6">
+          <div id="lead-comment-section" className="border-t border-white/10 pt-6">
             <h3 className="text-lg font-semibold text-white mb-4">💬 Commentaires</h3>
             
             {/* Liste des commentaires */}

@@ -13,6 +13,8 @@ const DEMO_MSG = 'Mode démo – les modifications ne sont pas enregistrées.'
 
 interface LeadRowProps {
   lead: Lead & { users?: { full_name: string | null; email: string } | null }
+  isFavorite?: boolean
+  onToggleFavorite?: (leadId: string, isFavorite: boolean) => void
   currentUser: {
     id: string
     role: UserRole
@@ -22,11 +24,12 @@ interface LeadRowProps {
   isDemo?: boolean
 }
 
-export default function LeadRow({ lead, currentUser, isDemo }: LeadRowProps) {
+export default function LeadRow({ lead, currentUser, isDemo, isFavorite = false, onToggleFavorite }: LeadRowProps) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [showCommentModal, setShowCommentModal] = useState(false)
+  const [showKoWarningModal, setShowKoWarningModal] = useState(false)
   const [editingField, setEditingField] = useState<string | null>(null)
   const [commentsCount, setCommentsCount] = useState(0)
   const [editValues, setEditValues] = useState({
@@ -273,6 +276,11 @@ export default function LeadRow({ lead, currentUser, isDemo }: LeadRowProps) {
       .eq('id', lead.id)
 
     if (!error) {
+      fetch(`/api/leads/${lead.id}/activity-log`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionType: 'status_changed', fieldName: 'status', oldValue: lead.status, newValue: 'appele' }),
+      }).catch(() => {})
       router.refresh()
     }
     setLoading(false)
@@ -344,12 +352,17 @@ export default function LeadRow({ lead, currentUser, isDemo }: LeadRowProps) {
     }
   }
 
-  const handleMarkAsKO = async () => {
+  const handleMarkAsKO = async (skipWarning = false) => {
     if (!currentUser?.id) return
     if (isDemo) {
       alert(DEMO_MSG)
       return
     }
+    if (!skipWarning && commentsCount === 0) {
+      setShowKoWarningModal(true)
+      return
+    }
+    setShowKoWarningModal(false)
     setLoading(true)
     const { error } = await supabase
       .from('leads')
@@ -361,6 +374,11 @@ export default function LeadRow({ lead, currentUser, isDemo }: LeadRowProps) {
       .eq('id', lead.id)
 
     if (!error) {
+      fetch(`/api/leads/${lead.id}/activity-log`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionType: 'status_changed', fieldName: 'status', oldValue: lead.status, newValue: 'ko' }),
+      }).catch(() => {})
       router.refresh()
     }
     setLoading(false)
@@ -368,6 +386,29 @@ export default function LeadRow({ lead, currentUser, isDemo }: LeadRowProps) {
 
   return (
     <>
+      {showKoWarningModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={() => setShowKoWarningModal(false)}>
+          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-5 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <p className="text-white font-medium mb-4">
+              ⚠️ Aucun commentaire sur ce lead. Il est recommandé d&apos;ajouter un commentaire pour documenter le motif du KO.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setShowKoWarningModal(false); setShowCommentModal(true) }}
+                className="flex-1 px-3 py-2 rounded-lg bg-blue-500/30 text-blue-200 hover:bg-blue-500/40 text-sm font-medium"
+              >
+                Ajouter un commentaire
+              </button>
+              <button
+                onClick={() => handleMarkAsKO(true)}
+                className="flex-1 px-3 py-2 rounded-lg bg-red-500/30 text-red-200 hover:bg-red-500/40 text-sm font-medium"
+              >
+                Marquer KO quand même
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {showCommentModal && (
         <CommentModal
           leadId={lead.id}
@@ -386,6 +427,24 @@ export default function LeadRow({ lead, currentUser, isDemo }: LeadRowProps) {
         />
       )}
       <tr data-lead-id={lead.id} className={`transition-colors ${rowBgColors[lead.status] || 'hover:bg-white/5'}`}>
+        <td className="px-2 py-2 sm:py-3">
+          {!isDemo && onToggleFavorite && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                fetch(`/api/leads/${lead.id}/favorite`, { method: 'POST' })
+                  .then((r) => r.json())
+                  .then((d) => onToggleFavorite(lead.id, d.isFavorite))
+                  .catch(() => {})
+              }}
+              className={`text-lg transition ${isFavorite ? 'text-amber-400' : 'text-white/30 hover:text-amber-400/70'}`}
+              title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            >
+              {isFavorite ? '⭐' : '☆'}
+            </button>
+          )}
+        </td>
         <td className="px-2 sm:px-3 py-2 sm:py-3">
           <div className="space-y-0.5">
             {editingField === 'first_name' ? (
@@ -867,7 +926,7 @@ export default function LeadRow({ lead, currentUser, isDemo }: LeadRowProps) {
             ) : null}
             {lead.status !== 'ko' && lead.status !== 'clos' ? (
               <button
-                onClick={handleMarkAsKO}
+                onClick={() => handleMarkAsKO(false)}
                 disabled={loading}
                 className="px-2 py-1 bg-red-500/20 text-red-300 rounded hover:bg-red-500/30 transition disabled:opacity-50 text-xs"
               >

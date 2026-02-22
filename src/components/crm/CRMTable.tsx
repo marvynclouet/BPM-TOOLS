@@ -16,6 +16,7 @@ interface Closer {
 interface CRMTableProps {
   leads: (Lead & { users?: { full_name: string | null; email: string } | null })[]
   closers: Closer[]
+  favoriteLeadIds?: Set<string>
   currentUser: {
     id: string
     role: UserRole
@@ -25,13 +26,25 @@ interface CRMTableProps {
   isDemo?: boolean
 }
 
-export default function CRMTable({ leads, closers, currentUser, isDemo }: CRMTableProps) {
+export default function CRMTable({ leads, closers, favoriteLeadIds = new Set(), currentUser, isDemo }: CRMTableProps) {
   const [viewMode, setViewMode] = useState<'table' | 'trello'>('table')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterFormation, setFilterFormation] = useState<string>('all')
   const [filterMonth, setFilterMonth] = useState<string>('all')
   const [filterSource, setFilterSource] = useState<string>('all')
+  const [filterFavorites, setFilterFavorites] = useState(false)
+  const [searchQuery, setSearchQuery] = useState<string>('')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [favoritesSet, setFavoritesSet] = useState<Set<string>>(favoriteLeadIds)
+
+  const handleToggleFavorite = (leadId: string, isFavorite: boolean) => {
+    setFavoritesSet((prev) => {
+      const next = new Set(prev)
+      if (isFavorite) next.add(leadId)
+      else next.delete(leadId)
+      return next
+    })
+  }
 
   // Générer les options de mois (12 derniers mois)
   const getMonthOptions = () => {
@@ -47,6 +60,16 @@ export default function CRMTable({ leads, closers, currentUser, isDemo }: CRMTab
   }
 
   const filteredLeads = leads.filter((lead) => {
+    if (filterFavorites && !favoritesSet.has(lead.id)) return false
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase()
+      const name = `${(lead.first_name || '')} ${(lead.last_name || '')}`.toLowerCase()
+      const phone = (lead.phone || '').replace(/\s/g, '')
+      const qNorm = q.replace(/\s/g, '')
+      const matchName = name.includes(q)
+      const matchPhone = qNorm.length >= 2 && phone.includes(qNorm)
+      if (!matchName && !matchPhone) return false
+    }
     if (filterStatus !== 'all' && lead.status !== filterStatus) return false
     if (filterFormation !== 'all' && lead.formation !== filterFormation) return false
     if (filterSource !== 'all' && (lead.source || 'direct') !== filterSource) return false
@@ -117,7 +140,16 @@ export default function CRMTable({ leads, closers, currentUser, isDemo }: CRMTab
             </button>
           </div>
 
-          {/* Filtres (uniquement en mode tableau) */}
+          {/* Recherche par nom ou téléphone */}
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="🔍 Nom ou téléphone..."
+            className="apple-card px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20 w-full sm:w-auto sm:min-w-[180px]"
+          />
+
+          {/* Filtres statut/formation/mois/source (tableau uniquement) */}
           {viewMode === 'table' && (
             <>
               <select
@@ -171,7 +203,22 @@ export default function CRMTable({ leads, closers, currentUser, isDemo }: CRMTab
                   </option>
                 ))}
               </select>
+
             </>
+          )}
+          {/* Filtre Favoris (visible en tableau ET Trello) */}
+          {!isDemo && (
+            <button
+              onClick={() => setFilterFavorites((v) => !v)}
+              className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition ${
+                filterFavorites
+                  ? 'bg-amber-500/30 text-amber-300 border border-amber-500/50'
+                  : 'bg-white/5 text-white/70 hover:text-white border border-white/10'
+              }`}
+              title="Filtrer par favoris"
+            >
+              ⭐ Favoris
+            </button>
           )}
         </div>
 
@@ -196,7 +243,14 @@ export default function CRMTable({ leads, closers, currentUser, isDemo }: CRMTab
 
       {/* Vue tableau ou Trello */}
       {viewMode === 'trello' ? (
-        <TrelloView isDemo={isDemo} leads={leads} closers={closers} currentUser={currentUser} />
+        <TrelloView
+          isDemo={isDemo}
+          leads={filteredLeads}
+          closers={closers}
+          currentUser={currentUser}
+          favoriteLeadIds={favoritesSet}
+          onToggleFavorite={handleToggleFavorite}
+        />
       ) : (
         <>
           {/* Vue desktop - Table */}
@@ -205,6 +259,7 @@ export default function CRMTable({ leads, closers, currentUser, isDemo }: CRMTab
               <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-white/10">
+                <th className="px-2 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '36px' }}>⭐</th>
                 <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-white/60 uppercase tracking-wider" style={{ width: '140px' }}>
                   Client
                 </th>
@@ -255,13 +310,20 @@ export default function CRMTable({ leads, closers, currentUser, isDemo }: CRMTab
             <tbody className="divide-y divide-white/5">
               {filteredLeads.length === 0 ? (
                         <tr>
-                          <td colSpan={15} className="px-3 py-12 text-center text-white/40 font-light">
+                          <td colSpan={16} className="px-3 py-12 text-center text-white/40 font-light">
                             Aucun lead trouvé
                           </td>
                         </tr>
               ) : (
                 filteredLeads.map((lead) => (
-                  <LeadRow key={lead.id} lead={lead} currentUser={currentUser} isDemo={isDemo} />
+                  <LeadRow
+                    key={lead.id}
+                    lead={lead}
+                    currentUser={currentUser}
+                    isDemo={isDemo}
+                    isFavorite={favoritesSet.has(lead.id)}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
                 ))
               )}
             </tbody>

@@ -24,6 +24,7 @@ export default async function CRMPage() {
           isDemo
           leads={leads as (Lead & { users?: { full_name: string | null; email: string } | null })[]}
           closers={closers}
+          favoriteLeadIds={new Set()}
           currentUser={{ id: demoUser.id, role: demoUser.role, full_name: demoUser.full_name, email: demoUser.email }}
         />
       </div>
@@ -48,6 +49,15 @@ export default async function CRMPage() {
     .select('id, full_name, email')
     .in('role', ['closer', 'admin'])
     .order('full_name')
+
+  let favoriteLeadIds = new Set<string>()
+  const { data: favorites, error: favError } = await supabase
+    .from('lead_favorites')
+    .select('lead_id')
+    .eq('user_id', authUser.id)
+  if (!favError) {
+    favoriteLeadIds = new Set((favorites || []).map((f: { lead_id: string }) => f.lead_id))
+  }
 
   const { data: closersWithLeads } = await supabase
     .from('leads')
@@ -83,6 +93,7 @@ export default async function CRMPage() {
       <CRMTable
         leads={leads || []}
         closers={finalClosers}
+        favoriteLeadIds={favoriteLeadIds}
         currentUser={
           user
             ? { id: user.id, role: user.role, full_name: user.full_name, email: user.email }
