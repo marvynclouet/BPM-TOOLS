@@ -18,6 +18,7 @@ export default function AIChatbox({ user }: AIChatboxProps) {
   const [quickAlerts, setQuickAlerts] = useState<string[]>([])
   const [priorite, setPriorite] = useState('')
   const [currentAlertIndex, setCurrentAlertIndex] = useState(0)
+  const [messageVisible, setMessageVisible] = useState(true)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -129,11 +130,23 @@ export default function AIChatbox({ user }: AIChatboxProps) {
     return () => { cancelled = true }
   }, [])
 
-  // Rotate alerts every 4s
+  // Afficher un message 30s puis le faire disparaître 2s avant le suivant
   useEffect(() => {
     if (quickAlerts.length <= 1) return
-    const t = setInterval(() => setCurrentAlertIndex((i) => (i + 1) % quickAlerts.length), 4000)
-    return () => clearInterval(t)
+    const showMs = 30000
+    const hideMs = 2000
+    let hideTimeout: ReturnType<typeof setTimeout>
+    const t = setInterval(() => {
+      setMessageVisible(false)
+      hideTimeout = setTimeout(() => {
+        setCurrentAlertIndex((i) => (i + 1) % quickAlerts.length)
+        setMessageVisible(true)
+      }, hideMs)
+    }, showMs + hideMs)
+    return () => {
+      clearInterval(t)
+      clearTimeout(hideTimeout)
+    }
   }, [quickAlerts.length])
 
   // Effet machine à écrire : affiche le message caractère par caractère
@@ -205,12 +218,16 @@ export default function AIChatbox({ user }: AIChatboxProps) {
           className="group flex max-w-[280px] flex-col items-end rounded-xl border border-white/10 bg-[#1e1e1e]/95 px-4 py-2.5 text-right shadow-lg backdrop-blur-sm transition hover:border-violet-500/30 hover:bg-[#252525]"
         >
           {greeting && <span className="text-sm font-medium text-white">{greeting}</span>}
-          <span className="mt-0.5 text-xs text-white/70 group-hover:text-violet-300">
-            {currentAlert}
-            {quickAlerts.length > 1 && (
-              <span className="ml-1 text-white/40">({currentAlertIndex + 1}/{quickAlerts.length})</span>
-            )}
-          </span>
+          {messageVisible ? (
+            <span className="mt-0.5 text-xs text-white/70 group-hover:text-violet-300">
+              {currentAlert}
+              {quickAlerts.length > 1 && (
+                <span className="ml-1 text-white/40">({currentAlertIndex + 1}/{quickAlerts.length})</span>
+              )}
+            </span>
+          ) : (
+            <span className="mt-0.5 text-xs text-white/40">...</span>
+          )}
         </button>
       )}
 
