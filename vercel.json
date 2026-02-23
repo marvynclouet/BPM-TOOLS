@@ -4,6 +4,6 @@
     { "path": "/api/ai/email-reminder", "schedule": "0 8 * * 1-5" },
     { "path": "/api/ai/email-report", "schedule": "0 9 * * *" },
     { "path": "/api/ai/email-chiffres-report", "schedule": "0 10 * * *" },
-    { "path": "/api/ai/email-new-leads-alert", "schedule": "0 9,12,16 * * 1-5" }
+    { "path": "/api/ai/email-new-leads-alert", "schedule": "0 9 * * 1-5" }
   ]
 }

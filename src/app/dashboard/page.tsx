@@ -476,13 +476,15 @@ export default async function DashboardPage() {
         .slice(0, 6)
 
       // Tendances semaine : leads et clos cette semaine vs semaine précédente
-      // Semaine = lundi à dimanche. Si aujourd'hui = dimanche, "cette semaine" = lundi dernier (pas lundi prochain)
-      const startOfWeek = new Date(now)
+      // Semaine = lundi 00:00 à dimanche 23:59 (Europe/Paris). On utilise Paris pour que les créations du lundi matin ne tombent pas dans "semaine précédente" (bug UTC).
+      const parisOffsetMs = 60 * 60 * 1000 // UTC+1 (hiver) ; en été ce serait 2h
+      const startOfWeekUtc = new Date(now)
       const daysToMonday = now.getDay() === 0 ? 6 : now.getDay() - 1
-      startOfWeek.setDate(now.getDate() - daysToMonday)
-      startOfWeek.setHours(0, 0, 0, 0)
-      const startOfLastWeek = new Date(startOfWeek)
-      startOfLastWeek.setDate(startOfLastWeek.getDate() - 7)
+      startOfWeekUtc.setUTCDate(now.getUTCDate() - daysToMonday)
+      startOfWeekUtc.setUTCHours(0, 0, 0, 0)
+      // Lundi 00:00 Paris = dimanche 23:00 UTC (hiver) → on recule d'1h pour aligner sur Paris
+      const startOfWeek = new Date(startOfWeekUtc.getTime() - parisOffsetMs)
+      const startOfLastWeek = new Date(startOfWeek.getTime() - 7 * 24 * 60 * 60 * 1000)
       const endOfLastWeek = new Date(startOfWeek.getTime() - 1)
 
       const { count: leadsThisWeek } = await adminClient
@@ -506,6 +508,7 @@ export default async function DashboardPage() {
         .gte('updated_at', startOfLastWeek.toISOString())
         .lte('updated_at', endOfLastWeek.toISOString())
 
+      // Diff = cette semaine − semaine précédente (positif = plus d'activité cette semaine)
       tendancesSemaine = {
         leadsDiff: (leadsThisWeek || 0) - (leadsLastWeek || 0),
         closDiff: (closThisWeek || 0) - (closLastWeek || 0),
