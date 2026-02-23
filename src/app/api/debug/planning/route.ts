@@ -51,7 +51,7 @@ export async function GET() {
       message:
         planning.length === 0
           ? 'Table planning vide. Ajoutez des sessions via "Ajouter une session" sur la page Planning.'
-          : planning_lead.length === 0
+          : planningLead.length === 0
           ? 'Sessions présentes mais aucun lien planning_lead. Vérifiez la table planning_lead.'
           : 'OK',
     })

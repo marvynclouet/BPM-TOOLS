@@ -62,19 +62,23 @@ export default async function PlanningPage() {
 
   if (planningRes.error) {
     if (planningRes.error.message?.includes('lead_id') || (planningRes.error as any)?.code === '42703') {
-      planningRes = await adminClient
+      const fallbackRes = await adminClient
         .from('planning')
         .select('id, start_date, end_date, specific_dates, gcal_event_id, created_at, updated_at')
         .order('start_date', { ascending: true })
         .order('id', { ascending: true })
+      if (!fallbackRes.error) {
+        planningRaw = (fallbackRes.data || []).map((row: any) => ({ ...row, lead_id: null }))
+      } else {
+        planningError = fallbackRes.error.message
+      }
+    } else {
+      planningError = planningRes.error.message
     }
-  }
-  if (planningRes.error) {
-    console.error('Error fetching planning:', planningRes.error)
-    planningError = planningRes.error.message
   } else {
     planningRaw = planningRes.data || []
   }
+  if (planningError) console.error('Error fetching planning:', planningError)
 
   const planningIds = (planningRaw || []).map((p: any) => p.id).filter(Boolean)
   if (planningIds.length > 0) {
