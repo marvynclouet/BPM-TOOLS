@@ -69,7 +69,7 @@ export default function DashboardLayout({ children, user, isDemo }: DashboardLay
     { href: '/dashboard/gestion', label: 'Gestion' },
     { href: '/dashboard/suivi-relances', label: 'Relances' },
     { href: '/dashboard/prospects-reseaux', label: 'Prospects' },
-    { href: '/dashboard/ads', label: 'Ads' },
+    { href: '/dashboard/ads', label: 'Ads', adminOnly: true },
     { href: '/dashboard/mon-espace', label: 'Mon Espace' },
   ]
 
