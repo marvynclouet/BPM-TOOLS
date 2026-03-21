@@ -33,7 +33,7 @@ export default function JpoEventManager({ onSelectEvent, selectedEventId }: Prop
   useEffect(() => { fetchEvents() }, [])
 
   const fetchEvents = async () => {
-    const res = await fetch('/api/jpo/events')
+    const res = await fetch(`/api/jpo/events?t=${Date.now()}`, { cache: 'no-store' })
     const data = await res.json()
     const evts = data.events || []
     setEvents(evts)

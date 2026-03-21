@@ -27,7 +27,7 @@ export default function JpoPublicPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch('/api/jpo/public')
+    fetch(`/api/jpo/public?t=${Date.now()}`, { cache: 'no-store' })
       .then(r => r.json())
       .then(setData)
       .catch(() => setData({ active: false, message: 'Erreur de chargement' }))

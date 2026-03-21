@@ -44,7 +44,7 @@ export default function JpoPlanning({ jpoId, maxPerSlot }: Props) {
   const fetchInscriptions = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/jpo/inscriptions?jpo_id=${jpoId}`)
+      const res = await fetch(`/api/jpo/inscriptions?jpo_id=${jpoId}&t=${Date.now()}`, { cache: 'no-store' })
       const data = await res.json()
       setInscriptions(data.inscriptions || [])
     } catch { /* */ }
