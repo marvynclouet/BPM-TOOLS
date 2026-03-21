@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generateTextWithFallback } from '@/lib/ai-model'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params

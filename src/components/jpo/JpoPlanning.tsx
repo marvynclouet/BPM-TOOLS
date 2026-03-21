@@ -52,21 +52,27 @@ export default function JpoPlanning({ jpoId, maxPerSlot }: Props) {
   }
 
   const updateStatus = async (id: string, status: string) => {
-    await fetch(`/api/jpo/inscriptions/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    })
-    await fetchInscriptions()
+    try {
+      const res = await fetch(`/api/jpo/inscriptions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      if (!res.ok) console.error('updateStatus error:', await res.text())
+      await fetchInscriptions()
+    } catch (err) { console.error('updateStatus error:', err) }
   }
 
   const updateFormation = async (id: string, formation_interet: string) => {
-    await fetch(`/api/jpo/inscriptions/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ formation_interet }),
-    })
-    await fetchInscriptions()
+    try {
+      const res = await fetch(`/api/jpo/inscriptions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ formation_interet }),
+      })
+      if (!res.ok) console.error('updateFormation error:', await res.text())
+      await fetchInscriptions()
+    } catch (err) { console.error('updateFormation error:', err) }
   }
 
   const generateRelance = async (id: string) => {
@@ -77,14 +83,17 @@ export default function JpoPlanning({ jpoId, maxPerSlot }: Props) {
       if (data.message) {
         setRelanceMsg(prev => ({ ...prev, [id]: data.message }))
       }
-    } catch { /* */ }
+    } catch (err) { console.error('generateRelance error:', err) }
     finally { setGeneratingRelance(null) }
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Supprimer cet inscrit ?')) return
-    await fetch(`/api/jpo/inscriptions/${id}`, { method: 'DELETE' })
-    await fetchInscriptions()
+    try {
+      const res = await fetch(`/api/jpo/inscriptions/${id}`, { method: 'DELETE' })
+      if (!res.ok) console.error('handleDelete error:', await res.text())
+      await fetchInscriptions()
+    } catch (err) { console.error('handleDelete error:', err) }
   }
 
   if (loading) return <div className="text-center py-8 text-white/50 text-sm">Chargement...</div>
