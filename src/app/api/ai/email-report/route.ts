@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateText } from 'ai'
 import { getDashboardContextForAI } from '@/lib/dashboard-context'
 import { sendSimpleEmail } from '@/lib/communications'
-import { getReportModel, isRateLimitError, RATE_LIMIT_MESSAGE } from '@/lib/ai-model'
+import { generateTextWithFallback, isRateLimitError, RATE_LIMIT_MESSAGE } from '@/lib/ai-model'
 
 /**
  * Génère un rapport IA (hebdo ou mensuel) et l'envoie par email.
@@ -23,11 +22,6 @@ export async function GET(request: NextRequest) {
     }
 
     const period = request.nextUrl.searchParams.get('period') === 'month' ? 'month' : 'week'
-    const model = getReportModel()
-    if (!model) {
-      return NextResponse.json({ error: 'Aucune clé API IA configurée' }, { status: 503 })
-    }
-
     const context = await getDashboardContextForAI()
     const typeLabel = period === 'week' ? 'hebdomadaire' : 'mensuel'
     const prompt = `Tu es l'assistant IA de BPM Formation (formations beatmaking et ingénierie du son). Génère un rapport ${typeLabel} concis et professionnel pour l'équipe.
@@ -42,7 +36,7 @@ Règles :
 ${context}
 --- FIN ---`
 
-    const { text } = await generateText({ model, prompt })
+    const { text } = await generateTextWithFallback({ prompt })
     const reportHtml = text.replace(/\n/g, '<br>')
 
     const subject = period === 'week'

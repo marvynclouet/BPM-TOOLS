@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateText } from 'ai'
-import { xai } from '@ai-sdk/xai'
-import { groq } from '@ai-sdk/groq'
-import { google } from '@ai-sdk/google'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { generateTextWithFallback } from '@/lib/ai-model'
 
 const VALID_ACTION_TYPES = ['ko', 'relancer', 'appele', 'en_cours_de_closing', 'chaud'] as const
 
@@ -28,27 +25,12 @@ function parseActions(text: string): { recommendation: string; suggestedActions:
   return { recommendation, suggestedActions }
 }
 
-function getModel() {
-  if (process.env.XAI_API_KEY) return xai('grok-3-mini')
-  if (process.env.GROQ_API_KEY) return groq('llama-3.3-70b-versatile')
-  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) return google('gemini-2.0-flash')
-  return null
-}
-
 /**
  * Analyse les commentaires d'un lead et propose une recommandation + actions suggérées (relancer, KO, etc.).
  * POST { leadId: string }
  */
 export async function POST(request: NextRequest) {
   try {
-    const model = getModel()
-    if (!model) {
-      return NextResponse.json(
-        { error: 'Aucune clé API configurée' },
-        { status: 503 }
-      )
-    }
-
     const body = await request.json().catch(() => ({}))
     const leadId = body.leadId
     if (!leadId || typeof leadId !== 'string') {
@@ -123,7 +105,7 @@ Réponds UNIQUEMENT avec un objet JSON valide (pas de texte avant ou après), de
 {"recommendation": "ta phrase de recommandation", "suggestedActions": [{"type": "relancer", "label": "Relancer par WhatsApp"}, {"type": "ko", "label": "Mettre en KO"}]}
 Les valeurs possibles pour type sont : ko, relancer, appele, en_cours_de_closing, chaud.`
 
-    const { text } = await generateText({ model, prompt })
+    const { text } = await generateTextWithFallback({ prompt, type: 'chat' })
     const { recommendation, suggestedActions } = parseActions(text)
 
     return NextResponse.json({

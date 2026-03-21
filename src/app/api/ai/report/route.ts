@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateText } from 'ai'
 import { getDashboardContextForAI, getCloserContextForAI } from '@/lib/dashboard-context'
 import { requireAuth } from '@/lib/auth'
-import { getReportModel, isRateLimitError, RATE_LIMIT_MESSAGE } from '@/lib/ai-model'
+import { generateTextWithFallback, isRateLimitError, RATE_LIMIT_MESSAGE } from '@/lib/ai-model'
 import { getCachedReport, setCachedReport } from '@/lib/ai-report-cache'
 
 /**
@@ -23,14 +22,6 @@ export async function POST(request: NextRequest) {
     const reportKey = closerId ? `${period}_${closerId}` : `${period}_global`
     const cached = await getCachedReport('report', reportKey)
     if (cached) return NextResponse.json({ report: cached })
-
-    const model = getReportModel()
-    if (!model) {
-      return NextResponse.json(
-        { error: 'Aucune clé API configurée (GROQ_API_KEY, XAI_API_KEY ou GOOGLE_GENERATIVE_AI_API_KEY)' },
-        { status: 503 }
-      )
-    }
 
     const isCloserReport = closerId != null
     const context = isCloserReport
@@ -57,7 +48,7 @@ Structure du rapport :
 ${context}
 --- FIN DONNÉES ---`
 
-    const { text } = await generateText({ model, prompt })
+    const { text } = await generateTextWithFallback({ prompt })
     const report = text.trim()
     await setCachedReport('report', report, reportKey)
     return NextResponse.json({ report })

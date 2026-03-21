@@ -222,6 +222,34 @@ export interface Database {
           updated_at?: string
         }
       }
+      whatsapp_exchanges: {
+        Row: {
+          id: string
+          lead_id: string
+          direction: 'sent' | 'received'
+          message: string
+          sent_at: string
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          lead_id: string
+          direction: 'sent' | 'received'
+          message: string
+          sent_at?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          lead_id?: string
+          direction?: 'sent' | 'received'
+          message?: string
+          sent_at?: string
+          created_by?: string | null
+        }
+      }
       settings: {
         Row: {
           id: string

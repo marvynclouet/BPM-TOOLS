@@ -32,6 +32,7 @@ export default function LeadRow({ lead, currentUser, isDemo, isFavorite = false,
   const [showKoWarningModal, setShowKoWarningModal] = useState(false)
   const [editingField, setEditingField] = useState<string | null>(null)
   const [commentsCount, setCommentsCount] = useState(0)
+  const [relanceAlert, setRelanceAlert] = useState(false)
   const [editValues, setEditValues] = useState({
     first_name: lead.first_name,
     last_name: lead.last_name,
@@ -50,6 +51,7 @@ export default function LeadRow({ lead, currentUser, isDemo, isFavorite = false,
 
   useEffect(() => {
     loadCommentsCount()
+    loadRelanceAlert()
   }, [lead.id])
 
   const loadCommentsCount = async () => {
@@ -63,6 +65,21 @@ export default function LeadRow({ lead, currentUser, isDemo, isFavorite = false,
       .eq('lead_id', lead.id)
     
     setCommentsCount(count || 0)
+  }
+
+  const loadRelanceAlert = async () => {
+    if (isDemo) return
+    const { data } = await supabase
+      .from('whatsapp_exchanges')
+      .select('direction, sent_at')
+      .eq('lead_id', lead.id)
+      .order('sent_at', { ascending: false })
+      .limit(2)
+    if (!data || data.length === 0) { setRelanceAlert(false); return }
+    const last = data[0]
+    if (last.direction !== 'sent') { setRelanceAlert(false); return }
+    const daysSince = (Date.now() - new Date(last.sent_at).getTime()) / (1000 * 60 * 60 * 24)
+    setRelanceAlert(daysSince > 3)
   }
 
   const statusLabels: Record<string, string> = {
@@ -467,10 +484,16 @@ export default function LeadRow({ lead, currentUser, isDemo, isFavorite = false,
               />
             ) : (
               <div
-                className="text-xs font-medium text-white cursor-pointer hover:text-blue-300 transition truncate"
+                className="text-xs font-medium text-white cursor-pointer hover:text-blue-300 transition truncate flex items-center gap-1"
                 onClick={() => setEditingField('first_name')}
                 title={lead.first_name}
               >
+                {relanceAlert && (
+                  <span className="relative flex h-2 w-2 shrink-0" title="Sans réponse WhatsApp depuis +3 jours">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                  </span>
+                )}
                 {lead.first_name}
               </div>
             )}

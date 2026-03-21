@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateText } from 'ai'
 import { getDashboardContextForAI } from '@/lib/dashboard-context'
 import { sendSimpleEmail } from '@/lib/communications'
-import { getReportModel, isRateLimitError, RATE_LIMIT_MESSAGE } from '@/lib/ai-model'
+import { generateTextWithFallback, isRateLimitError, RATE_LIMIT_MESSAGE } from '@/lib/ai-model'
 
 /**
  * Génère un rappel IA (alertes, priorité du jour) et l'envoie par email.
@@ -22,11 +21,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'AI_EMAIL_RECIPIENTS ou LEAD_NOTIFICATION_EMAIL non configuré' }, { status: 400 })
     }
 
-    const model = getReportModel()
-    if (!model) {
-      return NextResponse.json({ error: 'Aucune clé API IA configurée' }, { status: 503 })
-    }
-
     const context = await getDashboardContextForAI()
     const prompt = `Tu es l'assistant IA de BPM Formation. Génère un RAPPEL COURT pour la priorité du jour.
 - 3 à 5 points max
@@ -40,7 +34,7 @@ export async function GET(request: NextRequest) {
 ${context}
 --- FIN ---`
 
-    const { text } = await generateText({ model, prompt })
+    const { text } = await generateTextWithFallback({ prompt })
     const reminderHtml = text.replace(/\n/g, '<br>')
 
     const subject = `🔔 Rappel IA BPM – Priorité du jour (${new Date().toLocaleDateString('fr-FR')})`

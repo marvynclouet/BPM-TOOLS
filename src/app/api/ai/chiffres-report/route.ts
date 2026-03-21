@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { generateText } from 'ai'
 import { getChiffresContextForAI } from '@/lib/chiffres-context'
-import { getReportModel, isRateLimitError, RATE_LIMIT_MESSAGE } from '@/lib/ai-model'
+import { generateTextWithFallback, isRateLimitError, RATE_LIMIT_MESSAGE } from '@/lib/ai-model'
 import { getCachedReport, setCachedReport } from '@/lib/ai-report-cache'
 
 /**
@@ -21,11 +20,6 @@ export async function GET(request: NextRequest) {
     const cached = await getCachedReport('chiffres')
     if (cached) return NextResponse.json({ report: cached })
 
-    const model = getReportModel()
-    if (!model) {
-      return NextResponse.json({ error: 'Aucune clé API IA configurée' }, { status: 503 })
-    }
-
     const context = await getChiffresContextForAI()
 
     const prompt = `Tu es l'assistant IA de BPM Formation (formations beatmaking et ingénierie du son). Génère un RAPPORT CHIFFRÉ centré sur l'argent (CA) et la performance.
@@ -41,7 +35,7 @@ Règles :
 ${context}
 --- FIN ---`
 
-    const { text } = await generateText({ model, prompt })
+    const { text } = await generateTextWithFallback({ prompt })
     await setCachedReport('chiffres', text)
 
     return NextResponse.json({ report: text })

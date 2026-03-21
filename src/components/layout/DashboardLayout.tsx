@@ -67,6 +67,9 @@ export default function DashboardLayout({ children, user, isDemo }: DashboardLay
     { href: '/dashboard/comptabilite', label: 'Comptabilité', adminOnly: true },
     { href: '/dashboard/planning', label: 'Planning' },
     { href: '/dashboard/gestion', label: 'Gestion' },
+    { href: '/dashboard/suivi-relances', label: 'Relances' },
+    { href: '/dashboard/prospects-reseaux', label: 'Prospects' },
+    { href: '/dashboard/ads', label: 'Ads' },
     { href: '/dashboard/mon-espace', label: 'Mon Espace' },
   ]
 

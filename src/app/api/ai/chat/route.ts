@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { streamText } from 'ai'
-import { xai } from '@ai-sdk/xai'
-import { groq } from '@ai-sdk/groq'
-import { google } from '@ai-sdk/google'
+import { getChatModel } from '@/lib/ai-model'
 import { getDashboardContextForAI } from '@/lib/dashboard-context'
 import { BPM_TOOLS_KNOWLEDGE } from '@/lib/bpm-tools-knowledge'
 
@@ -30,24 +28,10 @@ ${BPM_TOOLS_KNOWLEDGE}
 
 Lorsque l'utilisateur pose une question sur l'utilisation du site, réponds en t'appuyant sur cette doc. Pour les questions sur les données (stats, leads, CA), utilise le contexte fourni dans le prompt.`
 
-function getModel() {
-  // Priorité : Grok (xAI) > Groq > Google Gemini
-  if (process.env.XAI_API_KEY) {
-    return { model: xai('grok-3-mini'), provider: 'grok' }
-  }
-  if (process.env.GROQ_API_KEY) {
-    return { model: groq('llama-3.3-70b-versatile'), provider: 'groq' }
-  }
-  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    return { model: google('gemini-2.0-flash'), provider: 'gemini' }
-  }
-  return null
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const modelInfo = getModel()
-    if (!modelInfo) {
+    const model = getChatModel()
+    if (!model) {
       return NextResponse.json(
         { error: 'Aucune clé API configurée. Ajoute GROQ_API_KEY (gratuit), XAI_API_KEY ou GOOGLE_GENERATIVE_AI_API_KEY dans .env' },
         { status: 503 }
@@ -78,7 +62,7 @@ Question de l'utilisateur : ${userMessage}
 Réponds de manière concise et actionnable.`
 
     const result = streamText({
-      model: modelInfo.model,
+      model,
       system: SYSTEM_PROMPT,
       prompt,
     })

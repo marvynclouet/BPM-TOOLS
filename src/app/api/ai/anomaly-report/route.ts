@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { generateText } from 'ai'
 import { getAnomalyContextForAI } from '@/lib/anomaly-context'
 import { requireAuth } from '@/lib/auth'
-import { getReportModel, isRateLimitError, RATE_LIMIT_MESSAGE } from '@/lib/ai-model'
+import { generateTextWithFallback, isRateLimitError, RATE_LIMIT_MESSAGE } from '@/lib/ai-model'
 import { getCachedReport, setCachedReport } from '@/lib/ai-report-cache'
 
 /**
@@ -14,14 +13,6 @@ export async function GET() {
 
     const cached = await getCachedReport('anomaly')
     if (cached) return NextResponse.json({ report: cached })
-
-    const model = getReportModel()
-    if (!model) {
-      return NextResponse.json(
-        { error: 'Aucune clé API IA configurée' },
-        { status: 503 }
-      )
-    }
 
     const context = await getAnomalyContextForAI()
     const prompt = `Tu es l'assistant IA de BPM Formation (CRM formations beatmaking et ingénierie du son).
@@ -41,7 +32,7 @@ Règles :
 ${context}
 --- FIN ---`
 
-    const { text } = await generateText({ model, prompt })
+    const { text } = await generateTextWithFallback({ prompt })
     const report = text.trim()
     await setCachedReport('anomaly', report)
     return NextResponse.json({ report })

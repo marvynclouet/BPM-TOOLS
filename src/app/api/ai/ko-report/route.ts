@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { generateText } from 'ai'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAuth } from '@/lib/auth'
-import { getReportModel, isRateLimitError, RATE_LIMIT_MESSAGE } from '@/lib/ai-model'
+import { generateTextWithFallback, isRateLimitError, RATE_LIMIT_MESSAGE } from '@/lib/ai-model'
 import { getCachedReportJson, setCachedReportJson } from '@/lib/ai-report-cache'
 
 /**
@@ -30,14 +29,6 @@ export async function GET() {
 
     const cached = await getCachedReportJson<{ report: string; koCount: number; withoutComment: number }>('ko')
     if (cached) return NextResponse.json(cached)
-
-    const model = getReportModel()
-    if (!model) {
-      return NextResponse.json(
-        { error: 'Aucune clé API configurée' },
-        { status: 503 }
-      )
-    }
 
     const leadIds = koLeads.map((l: any) => l.id)
     const { data: comments } = await admin
@@ -88,7 +79,7 @@ Règles :
 ${JSON.stringify(leadsWithContext, null, 2)}
 --- FIN DONNÉES ---`
 
-    const { text } = await generateText({ model, prompt })
+    const { text } = await generateTextWithFallback({ prompt })
     const result = { report: text.trim(), koCount: koLeads.length, withoutComment }
     await setCachedReportJson('ko', result)
 

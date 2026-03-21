@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateText } from 'ai'
 import { getChiffresContextForAI } from '@/lib/chiffres-context'
 import { sendSimpleEmail } from '@/lib/communications'
-import { getReportModel, isRateLimitError, RATE_LIMIT_MESSAGE } from '@/lib/ai-model'
+import { generateTextWithFallback, isRateLimitError, RATE_LIMIT_MESSAGE } from '@/lib/ai-model'
 
 /**
  * Génère le rapport chiffré et l'envoie par email (Lia).
@@ -21,11 +20,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'AI_EMAIL_RECIPIENTS ou LEAD_NOTIFICATION_EMAIL non configuré' }, { status: 400 })
     }
 
-    const model = getReportModel()
-    if (!model) {
-      return NextResponse.json({ error: 'Aucune clé API IA configurée' }, { status: 503 })
-    }
-
     const context = await getChiffresContextForAI()
 
     const prompt = `Tu es l'assistant IA de BPM Formation. Génère un RAPPORT CHIFFRÉ pour Lia (argent, CA, performance, évolution).
@@ -41,7 +35,7 @@ Règles :
 ${context}
 --- FIN ---`
 
-    const { text } = await generateText({ model, prompt })
+    const { text } = await generateTextWithFallback({ prompt })
     const reportHtml = text.replace(/\n/g, '<br>')
 
     const subject = `💰 Rapport chiffré BPM Formation – ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`
