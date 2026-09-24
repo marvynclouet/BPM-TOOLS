@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Lead, UserRole } from '@/types'
+import { Lead, UserRole, Financement } from '@/types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale/fr'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import LeadDetailModal from './LeadDetailModal'
+import { FINANCEMENT_OPTIONS, getFinancementOption } from '@/lib/financement'
 
 const SCROLL_ZONE = 100
 const SCROLL_SPEED = 12
@@ -39,6 +40,8 @@ export default function TrelloView({ leads, closers, currentUser, isDemo, favori
   const [mobileMoveLead, setMobileMoveLead] = useState<Lead | null>(null)
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null)
   const [mobileDropPending, setMobileDropPending] = useState(false)
+  // Lead déposé dans la colonne Financement, en attente du choix de l'étiquette
+  const [financementPickLead, setFinancementPickLead] = useState<Lead | null>(null)
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const dragPositionRef = useRef({ x: 0, y: 0 })
@@ -138,16 +141,19 @@ export default function TrelloView({ leads, closers, currentUser, isDemo, favori
   }
 
   // Obtenir les leads pour une colonne (closer ou nouveau/ko/clos), favoris en tête
-  const getLeadsForColumn = (closerId: string | 'nouveau' | 'ko' | 'clos') => {
+  const getLeadsForColumn = (closerId: string | 'nouveau' | 'financement' | 'ko' | 'clos') => {
     let list: typeof leads
+    const isActive = (lead: Lead) => lead.status !== 'ko' && lead.status !== 'clos'
     if (closerId === 'nouveau') {
-      list = leads.filter(lead => !lead.closer_id && lead.status !== 'ko' && lead.status !== 'clos')
+      list = leads.filter(lead => !lead.closer_id && !lead.financement && isActive(lead))
+    } else if (closerId === 'financement') {
+      list = leads.filter(lead => !!lead.financement && isActive(lead))
     } else if (closerId === 'ko') {
       list = leads.filter(lead => lead.status === 'ko')
     } else if (closerId === 'clos') {
       list = leads.filter(lead => lead.status === 'clos')
     } else {
-      list = leads.filter(lead => lead.closer_id === closerId && lead.status !== 'ko' && lead.status !== 'clos')
+      list = leads.filter(lead => lead.closer_id === closerId && !lead.financement && isActive(lead))
     }
     return [...list].sort((a, b) => {
       const aFav = favoriteLeadIds.has(a.id)
@@ -183,7 +189,11 @@ export default function TrelloView({ leads, closers, currentUser, isDemo, favori
     setDragOverColumnId(null)
   }
 
-  const handleDrop = async (targetCloserId: string | 'nouveau' | 'ko' | 'clos', leadId?: string) => {
+  const handleDrop = async (
+    targetCloserId: string | 'nouveau' | 'financement' | 'ko' | 'clos',
+    leadId?: string,
+    financement?: Financement
+  ) => {
     const leadIdToMove = leadId || draggedLead
     if (!leadIdToMove || !currentUser?.id) return
     if (isDemo) {
@@ -202,6 +212,16 @@ export default function TrelloView({ leads, closers, currentUser, isDemo, favori
       return
     }
 
+    // Dépôt dans Financement sans étiquette choisie : ouvrir le sélecteur
+    if (targetCloserId === 'financement' && !financement) {
+      setFinancementPickLead(currentLead)
+      setMobileMoveLead(null)
+      setMobileDropPending(false)
+      setDraggedLead(null)
+      setDragOverColumnId(null)
+      return
+    }
+
     try {
       let updateData: any = {
         last_action_at: new Date().toISOString(),
@@ -210,10 +230,17 @@ export default function TrelloView({ leads, closers, currentUser, isDemo, favori
       if (targetCloserId === 'nouveau') {
         // Mettre dans nouveau = enlever le closer
         updateData.closer_id = null
+        updateData.financement = null
         if (currentLead.status === 'ko') {
           updateData.status = 'nouveau'
         }
-      } else       if (targetCloserId === 'ko') {
+      } else if (targetCloserId === 'financement') {
+        updateData.financement = financement
+        updateData.closer_id = currentLead.closer_id || currentUser.id
+        if (currentLead.status === 'ko' || currentLead.status === 'clos') {
+          updateData.status = 'en_cours_de_closing'
+        }
+      } else if (targetCloserId === 'ko') {
         const { count } = await supabase
           .from('lead_comments')
           .select('*', { count: 'exact', head: true })
@@ -237,8 +264,9 @@ export default function TrelloView({ leads, closers, currentUser, isDemo, favori
         // Garder le closer actuel ou assigner au current user
         updateData.closer_id = currentLead.closer_id || currentUser.id
       } else {
-        // Assigner à un closer
+        // Assigner à un closer (sort le lead de la colonne Financement)
         updateData.closer_id = targetCloserId
+        updateData.financement = null
         // Si le lead était en KO, le remettre en nouveau
         if (currentLead.status === 'ko') {
           updateData.status = 'nouveau'
@@ -252,6 +280,7 @@ export default function TrelloView({ leads, closers, currentUser, isDemo, favori
 
       if (!error) {
         setMobileMoveLead(null)
+        setFinancementPickLead(null)
         await fetch('/api/revalidate-dashboard').catch(() => {})
         router.refresh()
       } else {
@@ -411,6 +440,48 @@ export default function TrelloView({ leads, closers, currentUser, isDemo, favori
             </div>
           )
         )}
+
+        {/* Colonne Financement (CPF, Pôle Emploi, AFDAS...) */}
+        <div
+          className={`flex-shrink-0 w-80 rounded-xl p-4 border-2 transition-all duration-150 min-h-[280px] ${
+            dragOverColumnId === 'financement' ? 'bg-purple-500/25 border-purple-400/60 ring-2 ring-purple-400/40' : 'bg-purple-500/10 border-white/10'
+          }`}
+          onDragOver={(e) => handleColumnDragOver(e, 'financement')}
+          onDragLeave={handleColumnDragLeave}
+          onDrop={() => handleDrop('financement')}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-2xl">💶</span>
+            <h3 className="font-semibold text-white">Financement</h3>
+            <span className="ml-auto px-2 py-1 bg-white/10 rounded-full text-xs text-white/70">
+              {getLeadsForColumn('financement').length}
+            </span>
+          </div>
+          <p className="text-xs text-white/40 -mt-2 mb-4">CPF · Pôle Emploi · AFDAS · OPCO</p>
+          <div className="space-y-3 min-h-[200px]">
+            {getLeadsForColumn('financement').map(lead => (
+              <LeadCard
+                key={lead.id}
+                lead={lead}
+                formationLabels={formationLabels}
+                interestLevelEmojis={interestLevelEmojis}
+                getCardColor={getCardColor}
+                getStatusEmoji={getStatusEmoji}
+                draggedLead={draggedLead}
+                onDragStart={(e) => handleDragStart(e, lead.id)}
+                onDragEnd={handleDragEnd}
+                onClick={() => setSelectedLead(lead)}
+                isFavorite={favoriteLeadIds.has(lead.id)}
+                onToggleFavorite={onToggleFavorite}
+                isDemo={isDemo}
+                showCloser
+              />
+            ))}
+            {getLeadsForColumn('financement').length === 0 && (
+              <div className="text-center text-white/30 text-sm py-8 min-h-[120px] flex items-center justify-center">Aucun lead</div>
+            )}
+          </div>
+        </div>
 
         {/* Colonne Clos */}
         <div
@@ -596,6 +667,52 @@ export default function TrelloView({ leads, closers, currentUser, isDemo, favori
             </div>
           </div>
         )}
+        {/* Colonne Financement */}
+        {getLeadsForColumn('financement').length > 0 && (
+          <div className="apple-card rounded-xl p-4">
+            <h3 className="text-base font-semibold text-white mb-3">💶 Financement</h3>
+            <div className="space-y-2">
+              {getLeadsForColumn('financement').map((lead) => (
+                <div
+                  key={lead.id}
+                  className={`p-3 rounded-lg border transition ${getCardColor(lead.status)}`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div
+                      onClick={() => setSelectedLead(lead)}
+                      className="flex-1 cursor-pointer"
+                    >
+                      <span className="font-semibold text-white text-sm">
+                        {lead.first_name} {lead.last_name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{getStatusEmoji(lead.status)}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setMobileMoveLead(lead)
+                        }}
+                        className="px-2 py-1 bg-white/10 hover:bg-white/20 rounded text-xs text-white/70 transition"
+                      >
+                        📤
+                      </button>
+                    </div>
+                  </div>
+                  <div
+                    onClick={() => setSelectedLead(lead)}
+                    className="cursor-pointer"
+                  >
+                    <div className="text-xs text-white/60">
+                      {formationLabels[lead.formation] || lead.formation}
+                    </div>
+                    <FinancementBadge financement={lead.financement} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {/* Colonne Clos */}
         {getLeadsForColumn('clos').length > 0 && (
           <div className="apple-card rounded-xl p-4">
@@ -724,6 +841,13 @@ export default function TrelloView({ leads, closers, currentUser, isDemo, favori
                 </button>
               ))}
               <button
+                onClick={() => handleDrop('financement', mobileMoveLead.id)}
+                disabled={mobileDropPending}
+                className="w-full px-4 py-3 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/30 rounded-xl text-white text-sm font-medium transition text-left disabled:opacity-50 disabled:pointer-events-none"
+              >
+                💶 Financement (CPF, Pôle Emploi, AFDAS…)
+              </button>
+              <button
                 onClick={() => handleDrop('clos', mobileMoveLead.id)}
                 disabled={mobileDropPending}
                 className="w-full px-4 py-3 bg-green-500/20 hover:bg-green-500/30 border border-green-400/30 rounded-xl text-white text-sm font-medium transition text-left disabled:opacity-50 disabled:pointer-events-none"
@@ -748,7 +872,48 @@ export default function TrelloView({ leads, closers, currentUser, isDemo, favori
           </div>
         </div>
       )}
+
+      {/* Choix du type de financement */}
+      {financementPickLead && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1a1a] rounded-2xl p-6 max-w-sm w-full border border-white/20">
+            <h3 className="text-lg font-semibold text-white mb-1">Type de financement</h3>
+            <p className="text-sm text-white/50 mb-4">
+              {financementPickLead.first_name} {financementPickLead.last_name}
+            </p>
+            <div className="space-y-2">
+              {FINANCEMENT_OPTIONS.map(option => (
+                <button
+                  key={option.value}
+                  onClick={() => handleDrop('financement', financementPickLead.id, option.value)}
+                  disabled={mobileDropPending}
+                  className={`w-full px-4 py-3 border rounded-xl text-sm font-medium transition text-left hover:brightness-125 disabled:opacity-50 disabled:pointer-events-none ${option.badge}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => !mobileDropPending && setFinancementPickLead(null)}
+              disabled={mobileDropPending}
+              className="w-full mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white text-sm transition disabled:opacity-50 disabled:pointer-events-none"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
     </>
+  )
+}
+
+function FinancementBadge({ financement }: { financement: Lead['financement'] }) {
+  const option = getFinancementOption(financement)
+  if (!option) return null
+  return (
+    <span className={`inline-block mt-1 px-2 py-0.5 rounded-full border text-[11px] font-semibold ${option.badge}`}>
+      💶 {option.label}
+    </span>
   )
 }
 
@@ -766,6 +931,7 @@ function LeadCard({
   isFavorite = false,
   onToggleFavorite,
   isDemo = false,
+  showCloser = false,
 }: {
   lead: Lead & { users?: { full_name: string | null; email: string } | null }
   formationLabels: Record<string, string>
@@ -779,6 +945,7 @@ function LeadCard({
   isFavorite?: boolean
   onToggleFavorite?: (leadId: string, isFavorite: boolean) => void
   isDemo?: boolean
+  showCloser?: boolean
 }) {
   return (
     <div
@@ -834,6 +1001,20 @@ function LeadCard({
       <div className="text-sm text-white/70 mb-2">
         {formationLabels[lead.formation] || lead.formation}
       </div>
+
+      {/* Étiquette financement */}
+      {lead.financement && (
+        <div className="mb-2">
+          <FinancementBadge financement={lead.financement} />
+        </div>
+      )}
+
+      {/* Closer (utile dans la colonne Financement qui mélange les closers) */}
+      {showCloser && lead.users && (
+        <div className="text-xs text-white/50 mb-2">
+          👤 {lead.users.full_name || lead.users.email}
+        </div>
+      )}
 
       {/* Niveau d'intérêt */}
       {lead.interest_level && (

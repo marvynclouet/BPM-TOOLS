@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import DatePicker from './DatePicker'
 import LeadAIRecommendation from './LeadAIRecommendation'
 import LeadRelancesTab from './LeadRelancesTab'
+import { FINANCEMENT_OPTIONS } from '@/lib/financement'
 
 interface ActivityEntry {
   id: string
@@ -69,6 +70,7 @@ export default function LeadDetailModal({ lead, currentUser, onClose, isDemo }: 
     formation_day: lead.formation_day,
     formation_start_date: lead.formation_start_date,
     interest_level: lead.interest_level,
+    financement: lead.financement ?? null,
     source: lead.source || 'direct',
   })
 
@@ -237,6 +239,7 @@ export default function LeadDetailModal({ lead, currentUser, onClose, isDemo }: 
         formation_day: editValues.formation_day,
         formation_start_date: editValues.formation_start_date,
         interest_level: editValues.interest_level,
+        financement: editValues.financement,
         closer_id: currentUser.id,
         last_action_at: new Date().toISOString(),
       }
@@ -482,6 +485,21 @@ export default function LeadDetailModal({ lead, currentUser, onClose, isDemo }: 
               <option value="froid">🔵 Froid</option>
               <option value="moyen">🟡 Moyen</option>
               <option value="chaud">🔥 Chaud</option>
+            </select>
+          </div>
+
+          {/* Financement */}
+          <div>
+            <label className="text-sm text-white/60 mb-2 block">Financement</label>
+            <select
+              value={editValues.financement || ''}
+              onChange={(e) => handleFieldChange('financement', e.target.value || null)}
+              className="w-full px-4 py-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:border-white/30 focus:bg-white/10 transition"
+            >
+              <option value="">Aucun (paiement direct)</option>
+              {FINANCEMENT_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>💶 {option.label}</option>
+              ))}
             </select>
           </div>
 

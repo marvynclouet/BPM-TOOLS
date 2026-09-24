@@ -32,6 +32,8 @@ export type FormationFormat = 'mensuelle' | 'semaine' | 'bpm_fast'
 export type FormationDay = 'lundi' | 'mardi' | 'mercredi' | 'jeudi' | 'vendredi' | 'samedi' | 'dimanche'
 export type InterestLevel = 'froid' | 'moyen' | 'chaud'
 
+export type Financement = 'cpf' | 'pole_emploi' | 'afdas' | 'opco' | 'autre'
+
 export interface Lead {
   id: string
   first_name: string
@@ -56,6 +58,7 @@ export interface Lead {
   whatsapp_relance_3_at: string | null
   relance_status: RelanceStatus | null
   relance_notes: string | null
+  financement?: Financement | null
   created_at: string
   updated_at: string
   last_action_at: string | null
