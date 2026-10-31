@@ -1,7 +1,7 @@
 import { createHash } from 'crypto'
 
 const TIKTOK_EVENTS_API = 'https://business-api.tiktok.com/open_api/v1.3/event/track/'
-const PIXEL_ID = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID || 'D6D2HMBC77UAAN00794G'
+const PIXEL_ID = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID || 'DBIVOS3C77U8I4RJ24U0'
 const ACCESS_TOKEN = process.env.TIKTOK_ACCESS_TOKEN
 
 /** test_event_code pour afficher les événements dans l'onglet Test Events. Vide en prod. */
