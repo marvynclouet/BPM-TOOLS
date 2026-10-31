@@ -8,7 +8,6 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import DatePicker from './DatePicker'
 import LeadAIRecommendation from './LeadAIRecommendation'
-import LeadRelancesTab from './LeadRelancesTab'
 import { FINANCEMENT_OPTIONS } from '@/lib/financement'
 
 interface ActivityEntry {
@@ -651,14 +650,6 @@ export default function LeadDetailModal({ lead, currentUser, onClose, isDemo }: 
               />
             </div>
           )}
-
-          {/* Section Suivi Relances WhatsApp */}
-          <div className="border-t border-white/10 pt-6">
-            <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-              📱 Suivi Relances WhatsApp
-            </h3>
-            <LeadRelancesTab leadId={lead.id} leadPhone={lead.phone} isDemo={isDemo} />
-          </div>
 
           {/* Section Historique des actions */}
           {!isDemo && (
