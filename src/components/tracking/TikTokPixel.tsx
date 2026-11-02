@@ -2,7 +2,7 @@
 
 import Script from 'next/script'
 
-const TIKTOK_PIXEL_ID = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID || 'DBIVOS3C77U8I4RJ24U0'
+const TIKTOK_PIXEL_ID = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID || 'DBJ3FMRC77UFSQ3BU3DG'
 
 export default function TikTokPixel() {
   if (!TIKTOK_PIXEL_ID) return null
